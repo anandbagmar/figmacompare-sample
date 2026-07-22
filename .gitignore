@@ -53,3 +53,5 @@ out/
 *.rar
 *.swp
 .gradle-home/
+docs/
+.github/
