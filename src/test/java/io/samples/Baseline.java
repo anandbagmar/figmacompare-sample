@@ -15,11 +15,24 @@ public class Baseline {
 
     public static void uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName, String appName,
             String testName, RectangleSize viewportSize) {
-        uploadImageAndSetAsBaseline(baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
+        doUpload(baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
     }
 
     public static BaselineUploadResult uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName,
             String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
+        if (null == apiKey || apiKey.isBlank()) {
+            throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
+                    + "Set it in config.properties or as an environment variable.");
+        }
+        if (null == serverUrl || serverUrl.isBlank()) {
+            throw new IllegalStateException("APPLITOOLS_SERVER_URL is required but was null/blank. "
+                    + "Set it in config.properties or as an environment variable.");
+        }
+        return doUpload(baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl);
+    }
+
+    private static BaselineUploadResult doUpload(String baseLineFilePath, String baselineName, String appName,
+            String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
         EyesRunner runner = new ImageRunner();
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
@@ -28,10 +41,10 @@ public class Baseline {
         config.setHostApp(appName);
         config.setBaselineEnvName(baselineName);
         config.setSaveNewTests(Boolean.TRUE);
-        if (null != apiKey && !apiKey.isBlank()) {
+        if (null != apiKey) {
             config.setApiKey(apiKey);
         }
-        if (null != serverUrl && !serverUrl.isBlank()) {
+        if (null != serverUrl) {
             config.setServerUrl(serverUrl);
         }
         eyesImages.setConfiguration(config);

@@ -98,6 +98,21 @@ test {
     }
 }
 
+task uploadToFigma(type: JavaExec) {
+    group = "applitools"
+    description = "Upload Figma designs listed in an input Excel file to Applitools as baselines"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass.set("io.samples.UploadToFigma")
+    def inputExcel = project.findProperty("inputExcel")
+    def forceRefresh = project.findProperty("forceRefresh") ?: "false"
+    doFirst {
+        if (null == inputExcel) {
+            throw new GradleException("Pass the input Excel path: ./gradlew uploadToFigma -PinputExcel=path/to/file.xlsx")
+        }
+        args = [inputExcel, forceRefresh]
+    }
+}
+
 clean.doFirst {
     delete "${rootDir}/target"
     delete "${rootDir}/bin"
