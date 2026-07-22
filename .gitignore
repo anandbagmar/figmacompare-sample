@@ -55,3 +55,6 @@ out/
 .gradle-home/
 docs/
 .github/
+
+downloaded_images/figma-cache/
+*_output.xlsx

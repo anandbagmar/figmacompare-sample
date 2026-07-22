@@ -15,6 +15,11 @@ public class Baseline {
 
     public static void uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName, String appName,
             String testName, RectangleSize viewportSize) {
+        uploadImageAndSetAsBaseline(baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
+    }
+
+    public static BaselineUploadResult uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName,
+            String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
         EyesRunner runner = new ImageRunner();
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
@@ -23,6 +28,12 @@ public class Baseline {
         config.setHostApp(appName);
         config.setBaselineEnvName(baselineName);
         config.setSaveNewTests(Boolean.TRUE);
+        if (null != apiKey && !apiKey.isBlank()) {
+            config.setApiKey(apiKey);
+        }
+        if (null != serverUrl && !serverUrl.isBlank()) {
+            config.setServerUrl(serverUrl);
+        }
         eyesImages.setConfiguration(config);
 
         try {
@@ -31,10 +42,7 @@ public class Baseline {
             BufferedImage img = ImageIO.read(imageFile);
             System.out.println("Image read");
             if (null == viewportSize) {
-                RectangleSize imageSize = new RectangleSize(
-                        img.getWidth(),
-                        img.getHeight());
-                viewportSize = imageSize;
+                viewportSize = new RectangleSize(img.getWidth(), img.getHeight());
                 System.out.println(
                         "Viewport is not provided. Using provided image's size: " + img.getWidth() + " x "
                                 + img.getHeight() + " pixels");
@@ -44,9 +52,11 @@ public class Baseline {
             System.out.println("After eyes.check");
             TestResults testResults = eyesImages.close(false);
             System.out.println("TestResults: " + testResults);
+            return new BaselineUploadResult(testResults, viewportSize);
         } catch (Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
+            return new BaselineUploadResult(null, viewportSize);
         } finally {
             eyesImages.abortIfNotClosed();
         }
