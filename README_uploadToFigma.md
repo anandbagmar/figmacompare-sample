@@ -39,7 +39,7 @@ file that's checked into git.
 
 ## 2. Prepare the input Excel file
 
-Copy the template [figma_baseline_input_template.xlsx](figma_baseline_input_template.xlsx)
+Copy the template [templates/figma_baseline_input_template.xlsx](templates/figma_baseline_input_template.xlsx)
 and fill in one row per page/component to validate.
 
 | Column | Required? | Description |
