@@ -53,7 +53,6 @@ out/
 *.rar
 *.swp
 .gradle-home/
-docs/
 .github/
 
 downloaded_images/figma-cache/

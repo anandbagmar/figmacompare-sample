@@ -17,3 +17,5 @@ instead.
 
 # Running the [Robot tests](docs/README_Robot.md)
 
+# Uploading [Figma designs as Applitools baselines](README_uploadToFigma.md)
+
