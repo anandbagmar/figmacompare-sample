@@ -1,5 +1,6 @@
 package io.samples;
 
+import java.io.File;
 import java.util.List;
 
 import com.applitools.eyes.RectangleSize;
@@ -17,20 +18,25 @@ import io.samples.figma.FigmaClient;
  * Viewport, Scale, Format. Only "Figma URL" is required per row; the rest are optional
  * overrides.
  *
- * Usage: UploadToFigma <inputExcelPath> [forceRefresh: true|false]
+ * Usage: UploadToFigma [inputExcelPath] [forceRefresh: true|false]
+ * inputExcelPath defaults to figma-visual-testing/figma_baseline_input.xlsx
  */
 public class UploadToFigma {
 
     private static final String DEFAULT_SCALE = "1";
     private static final String DEFAULT_FORMAT = "png";
+    private static final String DEFAULT_INPUT_PATH = AppConfig.CONFIG_DIR + File.separator
+            + "figma_baseline_input.xlsx";
 
     public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Usage: UploadToFigma <inputExcelPath> [forceRefresh: true|false]");
-            System.exit(1);
-        }
-        String inputPath = args[0];
+        String inputPath = args.length > 0 ? args[0] : DEFAULT_INPUT_PATH;
         boolean forceRefresh = args.length > 1 && Boolean.parseBoolean(args[1]);
+
+        if (!new File(inputPath).exists()) {
+            throw new IllegalStateException("Input Excel file not found: " + inputPath + System.lineSeparator()
+                    + "Copy " + AppConfig.CONFIG_DIR + "/figma_baseline_input_template.xlsx to " + inputPath
+                    + " and fill in your rows, or pass a different path as the first argument.");
+        }
 
         String figmaToken = AppConfig.get("FIGMA_TOKEN");
         String applitoolsApiKey = AppConfig.get("APPLITOOLS_API_KEY");
@@ -38,8 +44,18 @@ public class UploadToFigma {
         String appName = AppConfig.get("APP_NAME", "Applitools-Images");
         String cacheDir = AppConfig.get("FIGMA_CACHE_DIR", "downloaded_images/figma-cache");
 
+        String configFilePath = AppConfig.CONFIG_DIR + File.separator + AppConfig.CONFIG_FILE_NAME;
         if (null == figmaToken) {
-            throw new IllegalStateException("FIGMA_TOKEN is not set (config.properties or env var)");
+            throw new IllegalStateException("FIGMA_TOKEN is not set. Open " + configFilePath
+                    + " and fill in FIGMA_TOKEN (or set it as an environment variable).");
+        }
+        if (null == applitoolsApiKey) {
+            throw new IllegalStateException("APPLITOOLS_API_KEY is not set. Open " + configFilePath
+                    + " and fill in APPLITOOLS_API_KEY (or set it as an environment variable).");
+        }
+        if (null == applitoolsServerUrl) {
+            throw new IllegalStateException("APPLITOOLS_SERVER_URL is not set. Open " + configFilePath
+                    + " and fill in APPLITOOLS_SERVER_URL (or set it as an environment variable).");
         }
 
         FigmaClient figmaClient = new FigmaClient(figmaToken);
@@ -52,7 +68,10 @@ public class UploadToFigma {
 
         String outputPath = ExcelHelper.deriveOutputPath(inputPath);
         ExcelHelper.writeRows(inputPath, rows, outputPath);
-        System.out.println("Wrote results to " + outputPath);
+
+        long succeeded = rows.stream().filter(r -> "Success".equals(r.status)).count();
+        System.out.println();
+        System.out.println(succeeded + " of " + rows.size() + " succeeded. Results written to " + outputPath);
     }
 
     private static void processRow(FigmaRow row, FigmaClient figmaClient, String appName, String applitoolsApiKey,

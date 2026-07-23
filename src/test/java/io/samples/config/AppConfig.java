@@ -1,10 +1,14 @@
 package io.samples.config;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 public class AppConfig {
+
+    public static final String CONFIG_DIR = "figma-visual-testing";
+    public static final String CONFIG_FILE_NAME = "config.properties";
 
     private static final Properties PROPERTIES = load();
 
@@ -13,12 +17,17 @@ public class AppConfig {
 
     private static Properties load() {
         Properties properties = new Properties();
-        try (InputStream in = AppConfig.class.getClassLoader().getResourceAsStream("config.properties")) {
-            if (null != in) {
-                properties.load(in);
-            }
+        File configFile = new File(CONFIG_DIR, CONFIG_FILE_NAME);
+        if (!configFile.exists()) {
+            System.out.println(configFile.getPath() + " not found. Copy "
+                    + new File(CONFIG_DIR, CONFIG_FILE_NAME + ".example").getPath() + " to "
+                    + configFile.getPath() + " and fill in your tokens. Falling back to environment variables only.");
+            return properties;
+        }
+        try (FileInputStream in = new FileInputStream(configFile)) {
+            properties.load(in);
         } catch (IOException ex) {
-            throw new RuntimeException("Unable to load config.properties", ex);
+            throw new RuntimeException("Unable to load " + configFile.getPath(), ex);
         }
         return properties;
     }

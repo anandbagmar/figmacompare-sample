@@ -7,6 +7,26 @@ to a new output Excel file next to the input.
 
 This program is pure Java — no Selenium/Appium/browser needed.
 
+## Quick start
+
+Everything you need to touch lives in one folder: **[figma-visual-testing/](figma-visual-testing/)**
+
+1. **Copy the config file**: duplicate [figma-visual-testing/config.properties.example](figma-visual-testing/config.properties.example)
+   as `figma-visual-testing/config.properties`, and fill in `FIGMA_TOKEN`,
+   `APPLITOOLS_API_KEY`, and `APPLITOOLS_SERVER_URL` (see [step 1](#1-one-time-setup) below for where to get these).
+2. **Copy the input template**: duplicate [figma-visual-testing/figma_baseline_input_template.xlsx](figma-visual-testing/figma_baseline_input_template.xlsx)
+   as `figma-visual-testing/figma_baseline_input.xlsx`, and add one row per
+   Figma design you want as a baseline (see [step 2](#2-prepare-the-input-excel-file)).
+3. **Run it**:
+   ```bash
+   ./gradlew uploadToFigma
+   ```
+4. **Check the results**: open `figma-visual-testing/figma_baseline_input_output.xlsx`
+   — it has the same rows, plus a `Status` column and a `Baseline Batch URL` link
+   to each uploaded baseline in Applitools.
+
+Everything below is detail/reference for the steps above.
+
 ## 1. One-time setup
 
 ### 1.1 Get a Figma personal access token
@@ -19,7 +39,9 @@ usually `https://eyesapi.applitools.com` (SaaS) — use your org's URL if you're
 private/on-prem instance.
 
 ### 1.3 Fill in `config.properties`
-Edit [src/test/resources/config.properties](src/test/resources/config.properties):
+Copy [figma-visual-testing/config.properties.example](figma-visual-testing/config.properties.example)
+to `figma-visual-testing/config.properties` (this exact file is gitignored, so your
+tokens never get committed) and fill it in:
 
 ```properties
 FIGMA_TOKEN=figd_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -31,16 +53,13 @@ FIGMA_CACHE_DIR=downloaded_images/figma-cache
 
 Any of these can instead be set as an **environment variable** of the same name
 (e.g. `export FIGMA_TOKEN=...`) — an env var always overrides the value in
-`config.properties`. This is useful for CI, or to avoid putting real secrets in a
-file that's checked into git.
-
-> Do not commit real tokens/keys into `config.properties`. Prefer environment
-> variables for anything secret.
+`config.properties`. This is useful for CI.
 
 ## 2. Prepare the input Excel file
 
-Copy the template [templates/figma_baseline_input_template.xlsx](templates/figma_baseline_input_template.xlsx)
-and fill in one row per page/component to validate.
+Copy [figma-visual-testing/figma_baseline_input_template.xlsx](figma-visual-testing/figma_baseline_input_template.xlsx)
+to `figma-visual-testing/figma_baseline_input.xlsx` (the default filename the
+program looks for) and fill in one row per page/component to validate.
 
 | Column | Required? | Description |
 |---|---|---|
@@ -56,28 +75,30 @@ will fill in sensible defaults.
 
 ## 3. Run the program
 
-From the project root, using the `uploadToFigma` Gradle task:
+From the project root:
 
 ```bash
-./gradlew uploadToFigma -PinputExcel=figma_baseline_input.xlsx
+./gradlew uploadToFigma
+```
+
+This defaults to reading `figma-visual-testing/figma_baseline_input.xlsx`. To use
+a different file or force a fresh download of every image, pass properties:
+
+```bash
+./gradlew uploadToFigma -PinputExcel=path/to/file.xlsx -PforceRefresh=true
 ```
 
 **Parameters:**
 
-- `-PinputExcel=<path>` — path to the filled-in Excel file (required).
+- `-PinputExcel=<path>` — path to the input Excel file. Defaults to
+  `figma-visual-testing/figma_baseline_input.xlsx`.
 - `-PforceRefresh=true` — re-downloads every Figma image even if a cached copy
   already exists (useful when the Figma design has changed); defaults to `false`,
   which reuses any cached image already in `FIGMA_CACHE_DIR`.
 
-Example, forcing a fresh pull of every image:
-
-```bash
-./gradlew uploadToFigma -PinputExcel=figma_baseline_input.xlsx -PforceRefresh=true
-```
-
 Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
 `UploadToFigma.java` and run its `main` method with Program Arguments set to
-`<inputExcelPath> [forceRefresh]`.
+`[inputExcelPath] [forceRefresh]` (both optional).
 
 ## 4. Check the results
 
@@ -90,6 +111,7 @@ Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
   the console output for the full stack trace.
 - On success, `Baseline Batch URL` links directly to the uploaded baseline in the
   Applitools dashboard.
+- The console also prints a one-line summary at the end, e.g. `4 of 5 succeeded.`
 
 ## Notes
 
