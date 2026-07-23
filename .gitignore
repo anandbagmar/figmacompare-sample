@@ -55,6 +55,6 @@ out/
 .gradle-home/
 .github/
 
-downloaded_images/figma-cache/
+downloaded_images/
 *_output.xlsx
 figma-visual-testing/config.properties
