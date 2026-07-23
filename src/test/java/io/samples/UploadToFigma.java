@@ -34,7 +34,7 @@ public class UploadToFigma {
 
         if (!new File(inputPath).exists()) {
             throw new IllegalStateException("Input Excel file not found: " + inputPath + System.lineSeparator()
-                    + "Copy " + AppConfig.CONFIG_DIR + "/figma_baseline_input_template.xlsx to " + inputPath
+                    + "Copy " + AppConfig.TEMPLATES_DIR + "/figma_baseline_input_template.xlsx to " + inputPath
                     + " and fill in your rows, or pass a different path as the first argument.");
         }
 

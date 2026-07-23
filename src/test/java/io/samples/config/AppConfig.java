@@ -8,6 +8,7 @@ import java.util.Properties;
 public class AppConfig {
 
     public static final String CONFIG_DIR = "figma-visual-testing";
+    public static final String TEMPLATES_DIR = CONFIG_DIR + File.separator + "templates";
     public static final String CONFIG_FILE_NAME = "config.properties";
 
     private static final Properties PROPERTIES = load();
@@ -20,7 +21,7 @@ public class AppConfig {
         File configFile = new File(CONFIG_DIR, CONFIG_FILE_NAME);
         if (!configFile.exists()) {
             System.out.println(configFile.getPath() + " not found. Copy "
-                    + new File(CONFIG_DIR, CONFIG_FILE_NAME + ".example").getPath() + " to "
+                    + new File(TEMPLATES_DIR, CONFIG_FILE_NAME + ".example").getPath() + " to "
                     + configFile.getPath() + " and fill in your tokens. Falling back to environment variables only.");
             return properties;
         }

@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.samples.config.AppConfig;
+
 /**
  * Shared loading/write-back for the compareWithFigma step (see README_FigmaVisualValidation.md),
  * used by both the Selenium (web) and Appium (mobile) comparison test classes.
@@ -16,10 +18,11 @@ public class CompareRows {
     public static String resolveExcelPath(String systemPropertyName, String defaultPath) {
         String path = System.getProperty(systemPropertyName, defaultPath);
         if (!new File(path).exists()) {
-            throw new IllegalStateException("Compare input Excel file not found: " + path
-                    + ". Run uploadToFigma first, fill in the Locator column (web rows) for each row you want "
-                    + "scoped to a component, save the file at this path, and re-run (or pass -D"
-                    + systemPropertyName + "=<path>).");
+            throw new IllegalStateException("Compare input Excel file not found: " + path + System.lineSeparator()
+                    + "Run uploadToFigma first, copy its output next to " + AppConfig.TEMPLATES_DIR
+                    + "/figma_compare_input_template.xlsx as " + path + ", fill in the Locator column (web rows) "
+                    + "for each row you want scoped to a component, and re-run (or pass -D" + systemPropertyName
+                    + "=<path>).");
         }
         return path;
     }

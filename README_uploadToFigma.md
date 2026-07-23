@@ -13,14 +13,27 @@ together with the manual review steps and the `compareWithFigma` comparison prog
 
 ## Quick start
 
-Everything you need to touch lives in one folder: **[figma-visual-testing/](figma-visual-testing/)**
+Templates live in **[figma-visual-testing/templates/](figma-visual-testing/templates/)**
+and are reference-only — never edit them directly. Copy them one level up, into
+**figma-visual-testing/**, to create your actual working files. That way the
+templates stay clean for the next person/next time, and it's obvious at a glance
+which files are "the master copy" (`templates/`) vs. "your working data"
+(`figma-visual-testing/`, right above it).
 
-1. **Copy the config file**: duplicate [figma-visual-testing/config.properties.example](figma-visual-testing/config.properties.example)
-   as `figma-visual-testing/config.properties`, and fill in `FIGMA_TOKEN`,
-   `APPLITOOLS_API_KEY`, and `APPLITOOLS_SERVER_URL` (see [step 1](#1-one-time-setup) below for where to get these).
-2. **Copy the input template**: duplicate [figma-visual-testing/figma_baseline_input_template.xlsx](figma-visual-testing/figma_baseline_input_template.xlsx)
-   as `figma-visual-testing/figma_baseline_input.xlsx`, and add one row per
-   Figma design you want as a baseline (see [step 2](#2-prepare-the-input-excel-file)).
+Run these from the project root:
+
+```bash
+cp figma-visual-testing/templates/config.properties.example figma-visual-testing/config.properties
+cp figma-visual-testing/templates/figma_baseline_input_template.xlsx figma-visual-testing/figma_baseline_input.xlsx
+```
+
+1. **Fill in the config**: open `figma-visual-testing/config.properties` (the copy
+   you just made) and fill in `FIGMA_TOKEN`, `APPLITOOLS_API_KEY`, and
+   `APPLITOOLS_SERVER_URL` (see [step 1](#1-one-time-setup) below for where to get
+   these). This exact file is gitignored, so your tokens never get committed.
+2. **Fill in the input Excel**: open `figma-visual-testing/figma_baseline_input.xlsx`
+   (the copy you just made) and add one row per Figma design you want as a baseline
+   (see [step 2](#2-prepare-the-input-excel-file)).
 3. **Run it**:
    ```bash
    ./gradlew uploadToFigma
@@ -43,9 +56,15 @@ usually `https://eyesapi.applitools.com` (SaaS) — use your org's URL if you're
 private/on-prem instance.
 
 ### 1.3 Fill in `config.properties`
-Copy [figma-visual-testing/config.properties.example](figma-visual-testing/config.properties.example)
+Copy [figma-visual-testing/templates/config.properties.example](figma-visual-testing/templates/config.properties.example)
 to `figma-visual-testing/config.properties` (this exact file is gitignored, so your
-tokens never get committed) and fill it in:
+tokens never get committed):
+
+```bash
+cp figma-visual-testing/templates/config.properties.example figma-visual-testing/config.properties
+```
+
+Then fill it in:
 
 ```properties
 FIGMA_TOKEN=figd_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -61,9 +80,15 @@ Any of these can instead be set as an **environment variable** of the same name
 
 ## 2. Prepare the input Excel file
 
-Copy [figma-visual-testing/figma_baseline_input_template.xlsx](figma-visual-testing/figma_baseline_input_template.xlsx)
+Copy [figma-visual-testing/templates/figma_baseline_input_template.xlsx](figma-visual-testing/templates/figma_baseline_input_template.xlsx)
 to `figma-visual-testing/figma_baseline_input.xlsx` (the default filename the
-program looks for) and fill in one row per page/component to validate.
+program looks for):
+
+```bash
+cp figma-visual-testing/templates/figma_baseline_input_template.xlsx figma-visual-testing/figma_baseline_input.xlsx
+```
+
+Then fill in one row per page/component to validate.
 
 | Column | Required? | Description |
 |---|---|---|

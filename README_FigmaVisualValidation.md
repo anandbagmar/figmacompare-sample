@@ -69,7 +69,16 @@ Produces an output Excel with `App Name`, `Baseline Env Name`, `Baseline Batch U
 
 ## Step 3 — Identify validation scope *(Manual — QA)*
 
-For each row, open `Baseline Batch URL` and decide what should be validated:
+Copy `uploadToFigma`'s output into the compare input file `compareWithFigma` expects
+(this becomes your working copy — leave the actual output file alone in case you need
+to re-check it later):
+
+```bash
+cp figma-visual-testing/figma_baseline_input_output.xlsx figma-visual-testing/figma_compare_input.xlsx
+```
+
+Then, for each row in `figma_compare_input.xlsx`, open `Baseline Batch URL` and decide
+what should be validated:
 
 - **Web rows**: leave `Locator` blank for full-page validation, or fill it in with a
   CSS/XPath selector to validate just that component against the Figma baseline.
@@ -97,7 +106,7 @@ Run it with:
 ```
 See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details. The input
 file is `uploadToFigma`'s output Excel with `Locator` filled in per Step 3 — use
-[figma-visual-testing/figma_compare_input_template.xlsx](figma-visual-testing/figma_compare_input_template.xlsx)
+[figma-visual-testing/templates/figma_compare_input_template.xlsx](figma-visual-testing/templates/figma_compare_input_template.xlsx)
 as a reference for the expected shape.
 
 **4b. Mobile rows — needs a per-screen Appium flow written by QA. ✅ Implemented for
