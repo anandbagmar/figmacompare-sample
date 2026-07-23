@@ -16,12 +16,15 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.applitools.eyes.RectangleSize;
+
 public class ExcelHelper {
 
     private static final DataFormatter DATA_FORMATTER = new DataFormatter();
 
     private static final String COL_FIGMA_URL = "Figma URL";
-    private static final String COL_TARGET_URL = "UAT/Prod URL";
+    private static final String COL_PLATFORM = "Platform";
+    private static final String COL_APP_URL_OR_SCREEN_NAME = "App URL / Screen Name";
     private static final String COL_TEST_NAME = "Test Name";
     private static final String COL_VIEWPORT = "Viewport";
     private static final String COL_SCALE = "Scale";
@@ -31,9 +34,13 @@ public class ExcelHelper {
     private static final String COL_BASELINE_BATCH_URL = "Baseline Batch URL";
     private static final String COL_STATUS = "Status";
     private static final String COL_ERROR_MESSAGE = "Error Message";
+    private static final String COL_LOCATOR = "Locator";
+    private static final String COL_COMPARISON_BATCH_URL = "Comparison Batch URL";
+    private static final String COL_VALIDATION_STATUS = "Validation Status";
 
     private static final List<String> OUTPUT_ONLY_COLUMNS = List.of(
-            COL_APP_NAME, COL_BASELINE_ENV_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE);
+            COL_APP_NAME, COL_BASELINE_ENV_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE,
+            COL_LOCATOR, COL_COMPARISON_BATCH_URL, COL_VALIDATION_STATUS);
 
     private ExcelHelper() {
     }
@@ -51,11 +58,20 @@ public class ExcelHelper {
                 }
                 FigmaRow figmaRow = new FigmaRow();
                 figmaRow.figmaUrl = getCellValue(row, headerIndex.get(COL_FIGMA_URL));
-                figmaRow.targetUrl = getCellValue(row, headerIndex.get(COL_TARGET_URL));
+                figmaRow.platform = getCellValue(row, headerIndex.get(COL_PLATFORM));
+                figmaRow.appUrlOrScreenName = getCellValue(row, headerIndex.get(COL_APP_URL_OR_SCREEN_NAME));
                 figmaRow.testName = getCellValue(row, headerIndex.get(COL_TEST_NAME));
                 figmaRow.viewport = getCellValue(row, headerIndex.get(COL_VIEWPORT));
                 figmaRow.scale = getCellValue(row, headerIndex.get(COL_SCALE));
                 figmaRow.format = getCellValue(row, headerIndex.get(COL_FORMAT));
+                figmaRow.appName = getCellValue(row, headerIndex.get(COL_APP_NAME));
+                figmaRow.baselineEnvName = getCellValue(row, headerIndex.get(COL_BASELINE_ENV_NAME));
+                figmaRow.baselineBatchUrl = getCellValue(row, headerIndex.get(COL_BASELINE_BATCH_URL));
+                figmaRow.status = getCellValue(row, headerIndex.get(COL_STATUS));
+                figmaRow.errorMessage = getCellValue(row, headerIndex.get(COL_ERROR_MESSAGE));
+                figmaRow.locator = getCellValue(row, headerIndex.get(COL_LOCATOR));
+                figmaRow.comparisonBatchUrl = getCellValue(row, headerIndex.get(COL_COMPARISON_BATCH_URL));
+                figmaRow.validationStatus = getCellValue(row, headerIndex.get(COL_VALIDATION_STATUS));
                 rows.add(figmaRow);
             }
         } catch (IOException ex) {
@@ -108,6 +124,17 @@ public class ExcelHelper {
         }
     }
 
+    public static RectangleSize parseViewport(String viewport) {
+        if (isBlank(viewport)) {
+            return null;
+        }
+        String[] parts = viewport.toLowerCase().split("x");
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Viewport must be in WIDTHxHEIGHT format, got: " + viewport);
+        }
+        return new RectangleSize(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
+    }
+
     public static String deriveOutputPath(String inputPath) {
         File inputFile = new File(inputPath);
         String name = inputFile.getName();
@@ -121,7 +148,8 @@ public class ExcelHelper {
     private static Map<String, String> toMap(FigmaRow row) {
         Map<String, String> map = new LinkedHashMap<>();
         map.put(COL_FIGMA_URL, nullToEmpty(row.figmaUrl));
-        map.put(COL_TARGET_URL, nullToEmpty(row.targetUrl));
+        map.put(COL_PLATFORM, nullToEmpty(row.platform));
+        map.put(COL_APP_URL_OR_SCREEN_NAME, nullToEmpty(row.appUrlOrScreenName));
         map.put(COL_TEST_NAME, nullToEmpty(row.testName));
         map.put(COL_VIEWPORT, nullToEmpty(row.viewport));
         map.put(COL_SCALE, nullToEmpty(row.scale));
@@ -131,6 +159,9 @@ public class ExcelHelper {
         map.put(COL_BASELINE_BATCH_URL, nullToEmpty(row.baselineBatchUrl));
         map.put(COL_STATUS, nullToEmpty(row.status));
         map.put(COL_ERROR_MESSAGE, nullToEmpty(row.errorMessage));
+        map.put(COL_LOCATOR, nullToEmpty(row.locator));
+        map.put(COL_COMPARISON_BATCH_URL, nullToEmpty(row.comparisonBatchUrl));
+        map.put(COL_VALIDATION_STATUS, nullToEmpty(row.validationStatus));
         return map;
     }
 

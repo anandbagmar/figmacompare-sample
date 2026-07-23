@@ -3,7 +3,8 @@ package io.samples.excel;
 public class FigmaRow {
 
     public String figmaUrl;
-    public String targetUrl;
+    public String platform;
+    public String appUrlOrScreenName;
     public String testName;
     public String viewport;
     public String scale;
@@ -14,4 +15,8 @@ public class FigmaRow {
     public String baselineBatchUrl;
     public String status;
     public String errorMessage;
+
+    public String locator;
+    public String comparisonBatchUrl;
+    public String validationStatus;
 }

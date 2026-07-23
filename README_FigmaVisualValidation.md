@@ -8,7 +8,8 @@ by a single Excel file that accumulates columns as it moves through the pipeline
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadToFigma](README_uploadToFigma.md) |
-| 🚧 Not yet built — plan below, pending confirmation | `compareWithFigma` |
+| ✅ Implemented (web only) | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
+| 🚧 Not yet built | `compareWithFigma` mobile path (per-screen Appium flows) |
 
 ## Roles
 
@@ -76,28 +77,41 @@ For each row, open `Baseline Batch URL` and decide what should be validated:
   make sure `App URL / Screen Name` unambiguously identifies the screen, since QA
   will map it to an Appium flow in Step 4.
 
-## Step 4 — Compare implementation against Figma baseline *(Step 4a automated, 4b semi-automated — QA)* 🚧
+## Step 4 — Compare implementation against Figma baseline
 
-Run `compareWithFigma` over the same Excel. It iterates every row and, per row,
-opens the app, captures the screen/region, runs the Applitools Eyes comparison
-against `Baseline Env Name` from Step 2, and writes back `Comparison Batch URL` +
-`Validation Status` (`Passed`/`Unresolved`/`Failed`) — plus a final pass/fail summary,
-the same pattern `uploadToFigma` already uses.
+`compareWithFigma` iterates every row and, per row, opens the app, captures the
+screen/region, runs the Applitools Eyes comparison against `Baseline Env Name` from
+Step 2, and writes back `Comparison Batch URL` + `Validation Status`
+(`Passed`/`Unresolved`/`Failed`) — plus a final pass/fail summary, the same pattern
+`uploadToFigma` already uses.
 
-**4a. Web rows — fully generic.** Selenium opens `App URL / Screen Name` directly;
+**4a. Web rows — fully generic. ✅ Implemented** as
+[BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java):
+a TestNG test, data-driven from an Excel file (default
+`figma-visual-testing/figma_compare_input.xlsx`, override with `-PcompareExcel=<path>`),
+one invocation per `Platform=Web` row. Selenium opens `App URL / Screen Name` directly —
 no per-row code needed. Full page if `Locator` is blank, otherwise just that region.
+Run it with:
+```bash
+./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
+```
+See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details. The input
+file is `uploadToFigma`'s output Excel with `Locator` filled in per Step 3 — use
+[figma-visual-testing/figma_compare_input_template.xlsx](figma-visual-testing/figma_compare_input_template.xlsx)
+as a reference for the expected shape.
 
-**4b. Mobile rows — needs a per-screen Appium flow written by QA.** Unlike a web URL,
-a mobile "screen name" can't be navigated to generically — reaching it usually
-requires login, menu navigation, or test data setup specific to that app. So for each
-distinct `App URL / Screen Name` value used in the sheet, QA writes one small Appium
-method (a "screen flow": drive the app to that screen and hand back a screenshot/driver
-state) and registers it by name; `compareWithFigma` looks up the matching flow for each
-mobile row, runs it, then does the same Applitools comparison + Excel write-back as the
-web path. This mirrors what `BajajFinservAndroidTest`/`CalculatorFigmaTest` already do
-by hand today (see [docs/README_Appium_Java.md](docs/README_Appium_Java.md)) —
-`compareWithFigma` gives that pattern a shared runner + Excel-driven results instead of
-one bespoke test class per screen.
+**4b. Mobile rows — needs a per-screen Appium flow written by QA. 🚧 Not yet built.**
+Unlike a web URL, a mobile "screen name" can't be navigated to generically — reaching
+it usually requires login, menu navigation, or test data setup specific to that app. So
+for each distinct `App URL / Screen Name` value used in the sheet, QA will write one
+small Appium method (a "screen flow": drive the app to that screen and hand back a
+screenshot/driver state) and register it by name; `compareWithFigma` will look up the
+matching flow for each mobile row, run it, then do the same Applitools comparison +
+Excel write-back as the web path. This mirrors what
+`BajajFinservAndroidTest`/`CalculatorFigmaTest` already do by hand today (see
+[docs/README_Appium_Java.md](docs/README_Appium_Java.md)) — `compareWithFigma` will give
+that pattern a shared runner + Excel-driven results instead of one bespoke test class
+per screen.
 
 ## Step 5 — Review and report *(UI/UX team will manually review the results)*
 
@@ -108,11 +122,13 @@ implementation bug. File a Jira issue directly from Applitools for valid discrep
 
 ## What's next
 
-Step 4 (`compareWithFigma`) is only a plan right now — nothing has been implemented.
-Once this runbook is confirmed, implementation will add:
+Only Step 4b (mobile) remains unbuilt. It will add:
 
-- The `Platform` and `Locator` columns to the Excel schema (`ExcelHelper`/`FigmaRow`
-  and the input template), extending what `uploadToFigma` already reads/writes.
-- A `compareWithFigma` Gradle task + main class for the fully-generic web path (4a).
-- A small registry/interface for mobile screen flows (4b) that QA implements per app,
-  plus one worked example screen flow to copy from.
+- A small registry/interface for mobile screen flows that QA implements per app (one
+  method per distinct `App URL / Screen Name` value), plus one worked example to copy
+  from — likely alongside `BajajFinservAndroidTest`/`CalculatorFigmaTest`
+  (see [docs/README_Appium_Java.md](docs/README_Appium_Java.md)).
+- A shared `compareWithFigma` runner (or Gradle task) that reads `Platform=Android`/`iOS`
+  rows from the same Excel, looks up the matching screen flow by name, and writes
+  `Comparison Batch URL` + `Validation Status` back — mirroring the web path already
+  implemented in `BajajFinservWebTest`.

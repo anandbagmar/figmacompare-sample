@@ -68,7 +68,8 @@ program looks for) and fill in one row per page/component to validate.
 | Column | Required? | Description |
 |---|---|---|
 | `Figma URL` | **Yes** | A Figma share link to a specific frame/component, e.g. right-click a frame in Figma → *Copy link to selection*. Must contain a `node-id`. |
-| `UAT/Prod URL` | No (used later by `compareWithFigma`) | The corresponding UAT/production URL to compare against. Not used by this program, but keep it here so the same row can be reused later. |
+| `Platform` | No (used later by `compareWithFigma`) | `Web`, `Android`, or `iOS`. Not used by this program, but keep it here so the same row can be reused later. |
+| `App URL / Screen Name` | No (used later by `compareWithFigma`) | For `Web`: the UAT/production URL. For `Android`/`iOS`: a screen name/identifier. Not used by this program, but keep it here so the same row can be reused later. |
 | `Test Name` | No | Overrides the auto-derived test name. If left blank, it's derived from the Figma node's name (sanitized to letters/digits/`-`/`_`). |
 | `Viewport` | No | Overrides the viewport size, format `WIDTHxHEIGHT` (e.g. `1280x1024`). If left blank, it's derived from the downloaded image's pixel dimensions. |
 | `Scale` | No | Figma export scale, e.g. `1`, `2`, `3`. Defaults to `1` if blank. |

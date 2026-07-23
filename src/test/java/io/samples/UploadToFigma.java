@@ -14,9 +14,9 @@ import io.samples.figma.FigmaClient;
  * Reads Figma URLs from an input Excel file, uploads each corresponding Figma image to
  * Applitools Eyes as a baseline, and writes the results to an output Excel file.
  *
- * Expected input columns (header row, any order): Figma URL, UAT/Prod URL, Test Name,
- * Viewport, Scale, Format. Only "Figma URL" is required per row; the rest are optional
- * overrides.
+ * Expected input columns (header row, any order): Figma URL, Platform, App URL / Screen
+ * Name, Test Name, Viewport, Scale, Format. Only "Figma URL" is required per row; the
+ * rest are optional overrides.
  *
  * Usage: UploadToFigma [inputExcelPath] [forceRefresh: true|false]
  * inputExcelPath defaults to figma-visual-testing/figma_baseline_input.xlsx
@@ -87,7 +87,7 @@ public class UploadToFigma {
             }
             row.baselineEnvName = row.testName + "-baseline";
 
-            RectangleSize viewportSize = parseViewport(row.viewport);
+            RectangleSize viewportSize = ExcelHelper.parseViewport(row.viewport);
 
             java.io.File imageFile = figmaClient.getCachedImage(row.figmaUrl, format, scale, cacheDir, forceRefresh);
 
@@ -109,17 +109,6 @@ public class UploadToFigma {
             System.out.println(ex);
             ex.printStackTrace();
         }
-    }
-
-    private static RectangleSize parseViewport(String viewport) {
-        if (isBlank(viewport)) {
-            return null;
-        }
-        String[] parts = viewport.toLowerCase().split("x");
-        if (parts.length != 2) {
-            throw new IllegalArgumentException("Viewport must be in WIDTHxHEIGHT format, got: " + viewport);
-        }
-        return new RectangleSize(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
     }
 
     private static String sanitizeTestName(String name) {

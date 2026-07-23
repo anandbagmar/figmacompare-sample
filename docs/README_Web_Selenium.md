@@ -52,10 +52,19 @@ class and choosing **Run**.
   ```
 
 * [BajajFinservWebTest.java](../src/test/java/io/samples/web/selenium/BajajFinservWebTest.java) —
-  opens the Bajaj Finserv Markets personal loan page with Selenium and runs an Applitools
-  Eyes region comparison against a previously-uploaded baseline
+  the **web path of `compareWithFigma`** (see
+  [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
+  fixed single-page test: it's data-driven from an Excel file (default
+  `figma-visual-testing/figma_compare_input.xlsx`, override with
+  `-DcompareExcel=<path>`), one TestNG invocation per `Platform=Web` row. For each row it
+  opens `App URL / Screen Name` with Selenium, runs an Applitools Eyes comparison against
+  the `Baseline Env Name` baseline (full page if `Locator` is blank, otherwise just that
+  CSS/XPath-selected region), and writes `Comparison Batch URL` + `Validation Status` back
+  to an output Excel next to the input, plus a final pass/fail summary.
   ```bash
   ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
+  # or against a specific file:
+  ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PcompareExcel=path/to/file.xlsx
   ```
 
 Both test classes configure Eyes via the Visual Grid runner (`VisualGridRunner`), so a
@@ -67,6 +76,7 @@ single local browser session fans out to every browser/viewport combination adde
 Instead of manually placing an image under `downloaded_images/` and calling
 `Baseline.uploadImageAndSetAsBaseline(...)` as `WebFigmaTest` currently does, you can
 upload Figma designs in bulk via the
-[uploadToFigma](../README_uploadToFigma.md) utility.
+[uploadToFigma](../README_uploadToFigma.md) utility — its output Excel (with `Locator`
+filled in per row) is exactly what `BajajFinservWebTest` expects as input.
 
 Back to main [README](../README.md)
