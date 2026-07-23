@@ -15,7 +15,5 @@ instead.
 
 # Running the [Appium-Java tests in local Jenkins](docs/README_Jenkins.md)
 
-# Running the [Robot tests](docs/README_Robot.md)
-
 # Uploading [Figma designs as Applitools baselines](README_uploadToFigma.md)
 
