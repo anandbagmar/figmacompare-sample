@@ -72,6 +72,7 @@ public class Baseline {
             return new BaselineUploadResult(null, viewportSize);
         } finally {
             eyesImages.abortIfNotClosed();
+            runner.close();
         }
     }
 }
