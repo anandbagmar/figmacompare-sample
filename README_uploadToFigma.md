@@ -7,6 +7,10 @@ to a new output Excel file next to the input.
 
 This program is pure Java — no Selenium/Appium/browser needed.
 
+This is step 2 of the full workflow — see
+[README_FigmaVisualValidation.md](README_FigmaVisualValidation.md) for how this fits
+together with the manual review steps and the `compareWithFigma` comparison program.
+
 ## Quick start
 
 Everything you need to touch lives in one folder: **[figma-visual-testing/](figma-visual-testing/)**
