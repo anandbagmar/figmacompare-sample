@@ -104,7 +104,7 @@ public class BajajFinservWebTest {
     }
 
     private Eyes initialiseEyes(VisualGridRunner visualGridRunner, BatchInfo batch, String appName,
-            String baselineName) {
+            String baselineName, RectangleSize viewportSize) {
         Eyes eyes = new Eyes(visualGridRunner);
         Configuration config = new Configuration();
         config.setHostOS(System.getProperty("os.name"));
@@ -122,7 +122,9 @@ public class BajajFinservWebTest {
         config.setAccessibilityValidation(
                 new AccessibilitySettings(AccessibilityLevel.AA, AccessibilityGuidelinesVersion.WCAG_2_1));
 
-        config.addBrowser(1280, 1024, BrowserType.CHROME);
+        // Match the Figma baseline's viewport size, so the Visual Grid renders the
+        // checkpoint at the same size instead of a fixed default.
+        config.addBrowser(viewportSize.getWidth(), viewportSize.getHeight(), BrowserType.CHROME);
 
         eyes.setConfiguration(config);
         eyes.setLogHandler(new StdoutLogHandler(true));
@@ -142,7 +144,7 @@ public class BajajFinservWebTest {
 
         VisualGridRunner visualGridRunner = initVisualGridRunner();
         BatchInfo batchInfo = BatchSupport.createBatch(appName, userName);
-        Eyes eyesSelenium = initialiseEyes(visualGridRunner, batchInfo, appName, baselineName);
+        Eyes eyesSelenium = initialiseEyes(visualGridRunner, batchInfo, appName, baselineName, viewportSize);
         try {
             driver.get(row.appUrlOrScreenName);
             eyesSelenium.open(driver, appName, testName, viewportSize);
