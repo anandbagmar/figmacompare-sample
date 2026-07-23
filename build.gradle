@@ -26,7 +26,7 @@ compileJava { options.encoding = "UTF-8" }
 
 dependencies {
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
-    implementation "com.applitools:eyes-images-java5:5.81.35"
+    implementation "com.applitools:eyes-images-java5:5.81.36"
     implementation ("com.applitools:eyes-appium-java5:5.79.35") {
         exclude group: 'io.appium', module: 'java-client'
     }
