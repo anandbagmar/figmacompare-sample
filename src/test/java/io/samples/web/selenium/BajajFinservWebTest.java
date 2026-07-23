@@ -1,9 +1,6 @@
 package io.samples.web.selenium;
 
-import java.io.File;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -22,9 +19,6 @@ import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.RectangleSize;
 import com.applitools.eyes.StdoutLogHandler;
-import com.applitools.eyes.TestResults;
-import com.applitools.eyes.TestResultsStatus;
-import com.applitools.eyes.TestResultsSummary;
 import com.applitools.eyes.selenium.BrowserType;
 import com.applitools.eyes.selenium.Configuration;
 import com.applitools.eyes.selenium.Eyes;
@@ -33,10 +27,11 @@ import com.applitools.eyes.selenium.fluent.Target;
 import com.applitools.eyes.visualgrid.services.RunnerOptions;
 import com.applitools.eyes.visualgrid.services.VisualGridRunner;
 
+import io.samples.eyes.BatchSupport;
+import io.samples.eyes.ComparisonResultRecorder;
+import io.samples.excel.CompareRows;
 import io.samples.excel.ExcelHelper;
 import io.samples.excel.FigmaRow;
-
-import static io.samples.EyesResults.displayVisualValidationResults;
 
 /**
  * Web path of the compareWithFigma step described in README_FigmaVisualValidation.md:
@@ -45,13 +40,17 @@ import static io.samples.EyesResults.displayVisualValidationResults;
  * using "Locator" (if present) to scope the check to a single component instead of the
  * full page. Results (Comparison Batch URL, Validation Status) are written back to an
  * output Excel next to the input, plus a pass/fail summary.
+ *
+ * This class is the template for any generic web comparison: unlike mobile, a single
+ * data-driven test can handle every web row, since Selenium can navigate to any URL
+ * directly (see BajajFinservAndroidTest for why mobile needs one test per app instead).
  */
 public class BajajFinservWebTest {
 
     private static final String DEFAULT_APP_NAME = "Applitools-Images";
     private static final RectangleSize DEFAULT_VIEWPORT = new RectangleSize(1280, 1024);
-    private static final String DEFAULT_COMPARE_INPUT_PATH = "figma-visual-testing"
-            + File.separator + "figma_compare_input.xlsx";
+    private static final String DEFAULT_COMPARE_INPUT_PATH = "figma-visual-testing/figma_compare_input.xlsx";
+    private static final String COMPARE_EXCEL_PROPERTY = "compareExcel";
 
     private static final String userName = System.getProperty("user.name");
     private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
@@ -70,25 +69,14 @@ public class BajajFinservWebTest {
         if (null == allRows || allRows.isEmpty()) {
             return;
         }
-        String outputPath = ExcelHelper.deriveOutputPath(compareExcelPath);
-        ExcelHelper.writeRows(compareExcelPath, allRows, outputPath);
-        long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
-        System.out.println();
-        System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to " + outputPath);
+        CompareRows.writeResultsAndSummary(compareExcelPath, allRows);
     }
 
     @DataProvider(name = "webRows")
     public static Object[][] webRows() {
-        compareExcelPath = System.getProperty("compareExcel", DEFAULT_COMPARE_INPUT_PATH);
-        if (!new File(compareExcelPath).exists()) {
-            throw new IllegalStateException("Compare input Excel file not found: " + compareExcelPath
-                    + ". Run uploadToFigma first, fill in the Locator column for each row you want scoped to a "
-                    + "component, save the file at this path, and re-run (or pass -DcompareExcel=<path>).");
-        }
+        compareExcelPath = CompareRows.resolveExcelPath(COMPARE_EXCEL_PROPERTY, DEFAULT_COMPARE_INPUT_PATH);
         allRows = ExcelHelper.readRows(compareExcelPath);
-        List<FigmaRow> webRows = allRows.stream()
-                .filter(row -> "web".equalsIgnoreCase(row.platform))
-                .collect(Collectors.toList());
+        List<FigmaRow> webRows = CompareRows.filterByPlatform(allRows, "web");
 
         Object[][] data = new Object[webRows.size()][1];
         for (int i = 0; i < webRows.size(); i++) {
@@ -113,20 +101,6 @@ public class BajajFinservWebTest {
         VisualGridRunner visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
         visualGridRunner.setDontCloseBatches(true);
         return visualGridRunner;
-    }
-
-    private BatchInfo initBatchInfo(String appName) {
-        BatchInfo batch = new BatchInfo(userName + "-" + appName);
-        batch.setNotifyOnCompletion(false);
-        batch.addProperty("REPOSITORY_NAME", new File(System.getProperty("user.dir")).getName());
-        batch.addProperty("APP_NAME", appName);
-        return batch;
-    }
-
-    private void closeBatch(BatchInfo batch) {
-        if (null != batch) {
-            batch.setCompleted(true);
-        }
     }
 
     private Eyes initialiseEyes(VisualGridRunner visualGridRunner, BatchInfo batch, String appName,
@@ -167,7 +141,7 @@ public class BajajFinservWebTest {
         }
 
         VisualGridRunner visualGridRunner = initVisualGridRunner();
-        BatchInfo batchInfo = initBatchInfo(appName);
+        BatchInfo batchInfo = BatchSupport.createBatch(appName, userName);
         Eyes eyesSelenium = initialiseEyes(visualGridRunner, batchInfo, appName, baselineName);
         try {
             driver.get(row.appUrlOrScreenName);
@@ -179,26 +153,15 @@ public class BajajFinservWebTest {
             }
             eyesSelenium.closeAsync();
 
-            AtomicBoolean isPass = new AtomicBoolean(true);
-            TestResultsSummary allTestResults = visualGridRunner.getAllTestResults(false);
-            allTestResults.forEach(testResultContainer -> {
-                TestResults testResults = testResultContainer.getTestResults();
-                System.out.printf("Test: %s%n%s%n", testResults.getName(), testResultContainer);
-                displayVisualValidationResults(testResults);
-                row.comparisonBatchUrl = testResults.getUrl();
-                row.validationStatus = testResults.getStatus().toString();
-                TestResultsStatus status = testResults.getStatus();
-                if (status.equals(TestResultsStatus.Failed) || status.equals(TestResultsStatus.Unresolved)) {
-                    isPass.set(false);
-                }
-            });
-            closeBatch(batchInfo);
+            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(row,
+                    visualGridRunner.getAllTestResults(false));
+            BatchSupport.closeBatch(batchInfo);
             visualGridRunner.close();
-            Assert.assertTrue(isPass.get(), "Visual differences found for: " + row.appUrlOrScreenName);
+            Assert.assertTrue(isPass, "Visual differences found for: " + row.appUrlOrScreenName);
         } catch (RuntimeException ex) {
             row.validationStatus = "Failed";
             row.errorMessage = ex.getMessage();
-            closeBatch(batchInfo);
+            BatchSupport.closeBatch(batchInfo);
             eyesSelenium.abortIfNotClosed();
             throw ex;
         }

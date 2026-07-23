@@ -8,8 +8,8 @@ by a single Excel file that accumulates columns as it moves through the pipeline
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadToFigma](README_uploadToFigma.md) |
-| ✅ Implemented (web only) | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
-| 🚧 Not yet built | `compareWithFigma` mobile path (per-screen Appium flows) |
+| ✅ Implemented | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
+| ✅ Implemented (Android; template for other apps/iOS) | `compareWithFigma` mobile path — [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
 ## Roles
 
@@ -100,18 +100,27 @@ file is `uploadToFigma`'s output Excel with `Locator` filled in per Step 3 — u
 [figma-visual-testing/figma_compare_input_template.xlsx](figma-visual-testing/figma_compare_input_template.xlsx)
 as a reference for the expected shape.
 
-**4b. Mobile rows — needs a per-screen Appium flow written by QA. 🚧 Not yet built.**
+**4b. Mobile rows — needs a per-screen Appium flow written by QA. ✅ Implemented for
+Android** as
+[BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java).
 Unlike a web URL, a mobile "screen name" can't be navigated to generically — reaching
 it usually requires login, menu navigation, or test data setup specific to that app. So
-for each distinct `App URL / Screen Name` value used in the sheet, QA will write one
-small Appium method (a "screen flow": drive the app to that screen and hand back a
-screenshot/driver state) and register it by name; `compareWithFigma` will look up the
-matching flow for each mobile row, run it, then do the same Applitools comparison +
-Excel write-back as the web path. This mirrors what
-`BajajFinservAndroidTest`/`CalculatorFigmaTest` already do by hand today (see
-[docs/README_Appium_Java.md](docs/README_Appium_Java.md)) — `compareWithFigma` will give
-that pattern a shared runner + Excel-driven results instead of one bespoke test class
-per screen.
+this class is **one test class per app**, not one generic runner: it owns a small
+`SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name` value used by that
+app to a short Appium method that leaves the app on that screen. The data-driven test
+looks up the matching flow for each `Platform=Android` row, runs it, then does the same
+Applitools comparison + Excel write-back as the web path.
+```bash
+./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest
+```
+A new Android/iOS app means a new test class following this same template — reusing the
+shared [AppiumServerSupport](src/test/java/io/samples/appium/AppiumServerSupport.java),
+[AndroidDriverFactory](src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
+[BatchSupport](src/test/java/io/samples/eyes/BatchSupport.java),
+[ComparisonResultRecorder](src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
+and [CompareRows](src/test/java/io/samples/excel/CompareRows.java) utilities — only its
+`SCREEN_FLOWS` entries and Eyes configuration specifics need to be written from scratch.
+iOS has no equivalent driver factory/test class yet, but would follow the same pattern.
 
 ## Step 5 — Review and report *(UI/UX team will manually review the results)*
 
@@ -122,13 +131,13 @@ implementation bug. File a Jira issue directly from Applitools for valid discrep
 
 ## What's next
 
-Only Step 4b (mobile) remains unbuilt. It will add:
+Steps 1–5 all have a working implementation or documented manual process for Web and
+Android. What's left:
 
-- A small registry/interface for mobile screen flows that QA implements per app (one
-  method per distinct `App URL / Screen Name` value), plus one worked example to copy
-  from — likely alongside `BajajFinservAndroidTest`/`CalculatorFigmaTest`
-  (see [docs/README_Appium_Java.md](docs/README_Appium_Java.md)).
-- A shared `compareWithFigma` runner (or Gradle task) that reads `Platform=Android`/`iOS`
-  rows from the same Excel, looks up the matching screen flow by name, and writes
-  `Comparison Batch URL` + `Validation Status` back — mirroring the web path already
-  implemented in `BajajFinservWebTest`.
+- **iOS**: no `AppiumDriver` factory or comparison test class yet — follow
+  `BajajFinservAndroidTest`'s template (own `SCREEN_FLOWS` registry + the shared
+  `AppiumServerSupport`/`BatchSupport`/`ComparisonResultRecorder`/`CompareRows` utilities)
+  once there's an iOS app and screens to validate.
+- **New apps/screens**: each new Android/iOS app needs its own test class copying
+  `BajajFinservAndroidTest`'s structure; each new screen just needs one more
+  `SCREEN_FLOWS` entry in the relevant app's test class.

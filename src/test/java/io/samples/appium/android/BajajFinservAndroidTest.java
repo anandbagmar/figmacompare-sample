@@ -1,170 +1,130 @@
 package io.samples.appium.android;
 
 import java.io.File;
-import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 
-import org.openqa.selenium.By;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.StdoutLogHandler;
 import com.applitools.eyes.TestResults;
-import com.applitools.eyes.TestResultsStatus;
 import com.applitools.eyes.appium.Eyes;
 import com.applitools.eyes.config.MobileOptions;
 import com.applitools.eyes.selenium.Configuration;
 import com.applitools.eyes.selenium.StitchMode;
 
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.android.AndroidDriver;
-import io.appium.java_client.android.options.UiAutomator2Options;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
-import io.appium.java_client.service.local.AppiumServiceBuilder;
-import io.appium.java_client.service.local.flags.GeneralServerFlag;
-import io.samples.Baseline;
+import io.samples.appium.AppiumServerSupport;
+import io.samples.eyes.BatchSupport;
+import io.samples.eyes.ComparisonResultRecorder;
+import io.samples.excel.CompareRows;
+import io.samples.excel.ExcelHelper;
+import io.samples.excel.FigmaRow;
 
-class BajajFinservAndroidTest {
-    private static final String className = BajajFinservAndroidTest.class.getSimpleName();
-    private static final String userName = System.getProperty("user.name");
+/**
+ * Mobile (Android) path of the compareWithFigma step described in
+ * README_FigmaVisualValidation.md, for the Bajaj Finserv Android app.
+ *
+ * Unlike the web path (BajajFinservWebTest), a single generic test cannot handle every
+ * mobile row: Selenium can open any URL directly, but there is no equivalent "just
+ * navigate there" for a native app screen — reaching one usually needs login, menu
+ * navigation, or test data setup specific to that app. So this class is the template for
+ * one Appium test class per app: it owns a small registry of "screen flows" (one method
+ * per distinct "App URL / Screen Name" value used in the compare input Excel for this
+ * app), and a data-driven test that looks up and runs the matching flow for each
+ * "Platform=Android" row, then does the same Applitools comparison + Excel write-back as
+ * the web path.
+ */
+public class BajajFinservAndroidTest {
+
+    private static final String APP_NAME = "BajajFinservAndroidApp";
+    private static final String APK_NAME = "sampleApps" + File.separator + "app_npu_v8.3.17.apk";
     private static final boolean IS_FULL_RESET = true;
-    private static BatchInfo batch;
-    private static String APPIUM_SERVER_URL = "http://localhost:4723/wd/hub/";
-    private static AppiumDriverLocalService localAppiumServer;
-    private static String APK_NAME = "sampleApps" + File.separator + "app_npu_v8.3.17.apk";
-    private static boolean IS_EYES_ENABLED = true;
-    private final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
-    private AppiumDriver driver;
-    private static final String PACKAGE_NAME = "in.bajajfinservmarkets.app.uat";
-    private static final String ACTIVITY_NAME = "in.bajajfinservmarkets.app.MainActivity";
-    private Eyes eyes;
-    private String testName;
-    private String baselineName;
-    private static final String LOG_FILE_DIR = System.getenv("LOG_DIR") == null ? "appium-server.log"
-            : System.getenv("LOG_DIR") + "/appium_logs.txt";
+    private static final boolean IS_EYES_ENABLED = true;
+    private static final String DEFAULT_COMPARE_INPUT_PATH = "figma-visual-testing/figma_compare_input.xlsx";
+    private static final String COMPARE_EXCEL_PROPERTY = "compareExcel";
 
-    private BajajFinservAndroidTest() {
+    private static final String userName = System.getProperty("user.name");
+    private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
 
+    /**
+     * One entry per distinct "App URL / Screen Name" value used for this app in the
+     * compare input Excel. Add a new entry here whenever a new screen needs comparing;
+     * the flow just has to leave the app on that screen when it returns.
+     */
+    private static final Map<String, Consumer<AppiumDriver>> SCREEN_FLOWS = new HashMap<>();
+    static {
+        SCREEN_FLOWS.put("Home Screen", driver -> {
+            // The app opens directly on the home screen after launch - nothing to navigate.
+        });
     }
 
+    private static AppiumDriverLocalService localAppiumServer;
+    private static String appiumServerUrl = "http://localhost:4723/wd/hub/";
+    private static BatchInfo batch;
+    private static String compareExcelPath;
+    private static List<FigmaRow> allRows;
+
+    private AppiumDriver driver;
+    private Eyes eyes;
+
     @BeforeSuite
-    static void beforeAll() {
-        startAppiumServer();
-        String localBatchName = className;
-        String ciBatchName = System.getenv("APPLITOOLS_BATCH_NAME");
-        String applitoolsBatchName = ciBatchName == null ? localBatchName : ciBatchName;
-        batch = new BatchInfo(applitoolsBatchName);
-        // If the test runs via Jenkins, set the batch ID accordingly.
-        batch.addProperty("REPOSITORY_NAME", new File(System.getProperty("user.dir")).getName());
-        System.out.println("Create AppiumRunner");
-        System.out.printf("Batch name: %s%n", batch.getName());
-        System.out.printf("Batch startedAt: %s%n", batch.getStartedAt().getTime());
-        System.out.printf("Batch BatchId: %s%n", batch.getId());
+    public static void beforeSuite() {
+        localAppiumServer = AppiumServerSupport.start(AppiumServerSupport.defaultLogFileDir());
+        appiumServerUrl = localAppiumServer.getUrl().toString();
+        batch = BatchSupport.createSuiteBatch(APP_NAME);
     }
 
     @AfterSuite
-    static void afterAll() {
-        System.out.printf("AfterAll: Stopping the local Appium server running on: '%s'%n", APPIUM_SERVER_URL);
-        if (null != batch) {
-            batch.setCompleted(true);
-        }
-        if (null != localAppiumServer) {
-            localAppiumServer.stop();
-            System.out.printf("Is Appium server running? %s%n", localAppiumServer.isRunning());
+    public static void afterSuite() {
+        BatchSupport.closeBatch(batch);
+        AppiumServerSupport.stop(localAppiumServer);
+        if (null != allRows && !allRows.isEmpty()) {
+            CompareRows.writeResultsAndSummary(compareExcelPath, allRows);
         }
     }
 
-    private static void startAppiumServer() {
-        System.out.println("Start local Appium server");
-        AppiumServiceBuilder serviceBuilder = new AppiumServiceBuilder();
-        // Use any port, in case the default 4723 is already taken (maybe by another
-        // Appium server)
-        serviceBuilder.usingAnyFreePort();
-        serviceBuilder.withAppiumJS(new File("./node_modules/appium/build/lib/main.js"));
-        serviceBuilder.withLogFile(new File(LOG_FILE_DIR));
-        serviceBuilder.withArgument(GeneralServerFlag.ALLOW_INSECURE, "adb_shell");
-        serviceBuilder.withArgument(GeneralServerFlag.RELAXED_SECURITY);
+    @DataProvider(name = "androidRows")
+    public static Object[][] androidRows() {
+        compareExcelPath = CompareRows.resolveExcelPath(COMPARE_EXCEL_PROPERTY, DEFAULT_COMPARE_INPUT_PATH);
+        allRows = ExcelHelper.readRows(compareExcelPath);
+        List<FigmaRow> androidRows = CompareRows.filterByPlatform(allRows, "android");
 
-        // Appium 2.x
-        localAppiumServer = AppiumDriverLocalService.buildService(serviceBuilder);
-
-        localAppiumServer.start();
-        APPIUM_SERVER_URL = localAppiumServer.getUrl().toString();
-        System.out.printf("Appium server started on url: '%s'%n", localAppiumServer.getUrl().toString());
+        Object[][] data = new Object[androidRows.size()][1];
+        for (int i = 0; i < androidRows.size(); i++) {
+            data[i][0] = androidRows.get(i);
+        }
+        return data;
     }
 
     @BeforeMethod
-    public void beforeEach(Method testInfo) {
-        this.testName = testInfo.getName();
-        this.baselineName = testName + "-baseline";
-        System.out.printf("Test: %s - BeforeEach%n", testName);
-        setUpAndroid(testInfo);
-        configureEyes(testInfo);
+    public void beforeMethod() {
+        driver = AndroidDriverFactory.create(appiumServerUrl, APK_NAME, IS_FULL_RESET);
     }
 
     @AfterMethod
-    void tearDown(Method testInfo) {
-        System.out.println("AfterEach: Test - " + testInfo.getName());
-        boolean isPass = true;
-        if (IS_EYES_ENABLED) {
-            TestResults testResults = eyes.close(false);
-            System.out.printf("Test: %s\n%s%n", testResults.getName(), testResults);
-            if (testResults.getStatus().equals(TestResultsStatus.Failed)
-                    || testResults.getStatus().equals(TestResultsStatus.Unresolved)) {
-                isPass = false;
-            }
-        }
+    public void afterMethod() {
         if (null != driver) {
             driver.quit();
         }
-        Assert.assertTrue(isPass, "Visual differences found.");
     }
 
-    void setUpAndroid(Method testInfo) {
-        System.out.println("BeforeEach: Test - " + testInfo.getName());
-        System.out.printf("Create AppiumDriver for android test - %s%n", APPIUM_SERVER_URL);
-        // Appium 2.x
-        UiAutomator2Options uiAutomator2Options = new UiAutomator2Options();
-        uiAutomator2Options.setPlatformName("Android");
-
-        uiAutomator2Options.setAutomationName("UiAutomator2");
-        uiAutomator2Options.setDeviceName("Android");
-        uiAutomator2Options.setPrintPageSourceOnFindFailure(true);
-        uiAutomator2Options.setAutoGrantPermissions(true);
-        uiAutomator2Options.setFullReset(IS_FULL_RESET);
-        uiAutomator2Options.setApp(new File(APK_NAME).getAbsolutePath());
-        System.out.println("UiAutomator2Options:");
-        for (String capabilityName : uiAutomator2Options.getCapabilityNames()) {
-            System.out.println("\t" + capabilityName + ": " + uiAutomator2Options.getCapability(capabilityName));
-        }
-
-        try {
-            driver = new AndroidDriver(new URL(APPIUM_SERVER_URL), uiAutomator2Options);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1L));
-        } catch (MalformedURLException e) {
-            System.err.println(
-                    "Error creating Appium driver for android device with capabilities: " + uiAutomator2Options);
-            throw new RuntimeException(e);
-        }
-        System.out.printf("Created AppiumDriver for - %s%n", APPIUM_SERVER_URL);
-    }
-
-    private void configureEyes(Method testInfo) {
-        System.out.println("Setup Eyes configuration");
+    private void configureEyes(String testName, String baselineName) {
         eyes = new Eyes();
         eyes.setLogHandler(new StdoutLogHandler(true));
         Configuration configuration = eyes.getConfiguration();
-        if (null != baselineName) {
-            configuration.setBaselineEnvName(baselineName);
-        }
+        configuration.setBaselineEnvName(baselineName);
         configuration.addProperty("username", userName);
         configuration.setApiKey(APPLITOOLS_API_KEY);
         configuration.setBatch(batch);
@@ -178,28 +138,45 @@ class BajajFinservAndroidTest {
         configuration.setIgnoreDisplacements(true);
         configuration.setIsDisabled(!IS_EYES_ENABLED);
         configuration.setMatchLevel(MatchLevel.STRICT);
-        configuration.setSaveNewTests(true);
+        configuration.setSaveNewTests(false);
         configuration.setServerUrl("https://eyes.applitools.com");
         configuration.setStitchMode(StitchMode.CSS);
         eyes.setConfiguration(configuration);
         eyes.setConfiguration(eyes.getConfiguration().setMobileOptions(MobileOptions.keepNavigationBar(false)));
-        eyes.open(driver, className, testInfo.getName());
+        eyes.open(driver, APP_NAME, testName);
     }
 
-    @Test
-    void calculatorTest_id() {
-        String baselineName = testName + "-baseline";
-        String baselineImagePath = System.getProperty("user.dir") + File.separator + "downloaded_images"
-                + File.separator + "calculator.png";
-        Baseline.uploadImageAndSetAsBaseline(baselineImagePath, baselineName, className, testName, null);
+    @Test(dataProvider = "androidRows")
+    void compareAndroidRowWithFigmaBaseline(FigmaRow row) {
+        String testName = isBlank(row.testName) ? row.appUrlOrScreenName : row.testName;
+        String baselineName = isBlank(row.baselineEnvName) ? testName + "-baseline" : row.baselineEnvName;
 
-        int p1 = 3;
-        int p2 = 5;
+        Consumer<AppiumDriver> screenFlow = SCREEN_FLOWS.get(row.appUrlOrScreenName);
+        if (null == screenFlow) {
+            row.validationStatus = "Failed";
+            row.errorMessage = "No screen flow registered for \"" + row.appUrlOrScreenName + "\". Add one to "
+                    + "BajajFinservAndroidTest.SCREEN_FLOWS.";
+            Assert.fail(row.errorMessage);
+            return;
+        }
 
-        driver.findElement(By.id("digit_" + p1)).click();
-        driver.findElement(By.id("op_add")).click();
-        driver.findElement(By.id("digit_" + p2)).click();
-        driver.findElement(By.id("eq")).click();
-        eyes.checkWindow("eq");
+        configureEyes(testName, baselineName);
+        try {
+            screenFlow.accept(driver);
+            eyes.checkWindow(testName);
+            TestResults testResults = eyes.close(false);
+
+            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(row, testResults);
+            Assert.assertTrue(isPass, "Visual differences found for: " + row.appUrlOrScreenName);
+        } catch (RuntimeException ex) {
+            row.validationStatus = "Failed";
+            row.errorMessage = ex.getMessage();
+            eyes.abortIfNotClosed();
+            throw ex;
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return null == value || value.isBlank();
     }
 }
