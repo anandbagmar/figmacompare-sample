@@ -12,7 +12,7 @@ by a single Excel file that accumulates columns as it moves through the pipeline
 
 ## Roles
 
-- **UI/UX (Prachiti)** — owns the Figma designs, prepares the initial input Excel,
+- **UI/UX Team** — owns the Figma designs, prepares the initial input Excel,
   reviews final visual differences, files Jira issues.
 - **QA** — runs both programs, fills in the `Locator` column for web components,
   writes the small per-screen Appium navigation flows mobile rows need, and helps
@@ -46,7 +46,7 @@ Scale / Format (optional)        (unchanged)                   (unchanged)      
                                                                                           Error Message
 ```
 
-## Step 1 — Prepare the input Excel *(Manual — Prachiti)*
+## Step 1 — Prepare the input Excel *(Manually prepared by the UI/UX team)*
 
 One row per Figma design to validate:
 
@@ -99,7 +99,7 @@ by hand today (see [docs/README_Appium_Java.md](docs/README_Appium_Java.md)) —
 `compareWithFigma` gives that pattern a shared runner + Excel-driven results instead of
 one bespoke test class per screen.
 
-## Step 5 — Review and report *(Manual — Prachiti/QA)*
+## Step 5 — Review and report *(UI/UX team will manually review the results)*
 
 Open the final output Excel, filter rows where `Validation Status` is `Unresolved` or
 `Failed`, open each `Comparison Batch URL` in the Applitools dashboard, and use the
