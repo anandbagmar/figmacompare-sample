@@ -29,17 +29,18 @@ import com.applitools.eyes.visualgrid.services.VisualGridRunner;
 
 import io.samples.eyes.BatchSupport;
 import io.samples.eyes.ComparisonResultRecorder;
-import io.samples.excel.CompareRows;
 import io.samples.excel.ExcelHelper;
+import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
 
 /**
  * Web path of the compareWithFigma step described in README_FigmaVisualValidation.md:
- * for every "Web" platform row in the compare input Excel, opens "App URL / Screen Name"
- * with Selenium and compares it against the Figma baseline uploaded by uploadToFigma,
- * using "Locator" (if present) to scope the check to a single component instead of the
- * full page. Results (Comparison Batch URL, Validation Status) are written back to an
- * output Excel next to the input, plus a pass/fail summary.
+ * for every "Web" platform row in the shared Figma Excel file, opens "App URL / Screen
+ * Name" with Selenium and compares it against the Figma baseline uploaded by
+ * uploadToFigma, using "Locator" (if present) to scope the check to a single component
+ * instead of the full page. Results (Comparison Batch URL, Validation Status) are
+ * written back to the same file in place, plus a pass/fail summary. Rows with "Skip" set
+ * are left untouched and not processed.
  *
  * This class is the template for any generic web comparison: unlike mobile, a single
  * data-driven test can handle every web row, since Selenium can navigate to any URL
@@ -49,13 +50,11 @@ public class BajajFinservWebTest {
 
     private static final String DEFAULT_APP_NAME = "Applitools-Images";
     private static final RectangleSize DEFAULT_VIEWPORT = new RectangleSize(1280, 1024);
-    private static final String DEFAULT_COMPARE_INPUT_PATH = "figma-visual-testing/figma_compare_input.xlsx";
-    private static final String COMPARE_EXCEL_PROPERTY = "compareExcel";
 
     private static final String userName = System.getProperty("user.name");
     private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
 
-    private static String compareExcelPath;
+    private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
 
     private WebDriver driver;
@@ -69,14 +68,18 @@ public class BajajFinservWebTest {
         if (null == allRows || allRows.isEmpty()) {
             return;
         }
-        CompareRows.writeResultsAndSummary(compareExcelPath, allRows);
+        ExcelHelper.writeRows(figmaExcelPath, allRows);
+        long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
+        System.out.println();
+        System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
+                + figmaExcelPath);
     }
 
     @DataProvider(name = "webRows")
     public static Object[][] webRows() {
-        compareExcelPath = CompareRows.resolveExcelPath(COMPARE_EXCEL_PROPERTY, DEFAULT_COMPARE_INPUT_PATH);
-        allRows = ExcelHelper.readRows(compareExcelPath);
-        List<FigmaRow> webRows = CompareRows.filterByPlatform(allRows, "web");
+        figmaExcelPath = FigmaExcelFile.resolvePath(System.getProperty("figmaExcel"));
+        allRows = ExcelHelper.readRows(figmaExcelPath);
+        List<FigmaRow> webRows = FigmaExcelFile.filterByPlatform(allRows, "web");
 
         Object[][] data = new Object[webRows.size()][1];
         for (int i = 0; i < webRows.size(); i++) {

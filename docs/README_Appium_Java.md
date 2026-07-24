@@ -74,15 +74,15 @@ class and choosing **Run**.
   the **mobile (Android) path of `compareWithFigma`** for the Bajaj Finserv app
   (`app_npu_v8.3.17.apk`); see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
-  the same compare input Excel as `BajajFinservWebTest` (default
-  `figma-visual-testing/figma_compare_input.xlsx`, override with `-PcompareExcel=<path>`),
-  one invocation per `Platform=Android` row. Unlike web, there's no generic way to
-  navigate a native app to an arbitrary screen, so this class owns a small
+  the same shared Figma Excel file as `BajajFinservWebTest` (default
+  `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
+  one invocation per non-`Skip` `Platform=Android` row. Unlike web, there's no generic way
+  to navigate a native app to an arbitrary screen, so this class owns a small
   `SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name` value to a short
   Appium method that leaves the app on that screen — add an entry here for every new
   screen you want to validate. It then runs an Applitools Eyes full-page comparison
   against the `Baseline Env Name` baseline, and writes `Comparison Batch URL` +
-  `Validation Status` back, same as the web path.
+  `Validation Status` back into the same file in place, same as the web path.
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest
   ```
@@ -93,8 +93,8 @@ class and choosing **Run**.
   [AndroidDriverFactory](../src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
   [BatchSupport](../src/test/java/io/samples/eyes/BatchSupport.java),
   [ComparisonResultRecorder](../src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
-  and [CompareRows](../src/test/java/io/samples/excel/CompareRows.java) utilities — only
-  the screen flows and Eyes configuration specifics need to be app-specific.
+  and [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java) utilities —
+  only the screen flows and Eyes configuration specifics need to be app-specific.
 
 ### iOS
 

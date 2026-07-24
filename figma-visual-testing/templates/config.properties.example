@@ -3,3 +3,9 @@ APPLITOOLS_API_KEY=
 APPLITOOLS_SERVER_URL=
 APP_NAME=Applitools-Images
 FIGMA_CACHE_DIR=downloaded_images/figma-cache
+# Optional: path to the shared Figma Excel file used by uploadToFigma and
+# compareWithFigma. Leave blank to use the built-in default
+# (figma-visual-testing/figma_visual_tests.xlsx). Can also be overridden per-run via
+# -PfigmaExcel=<path> or a FIGMA_EXCEL_FILE environment variable - useful if different
+# projects, or web vs mobile, should use different files.
+FIGMA_EXCEL_FILE=

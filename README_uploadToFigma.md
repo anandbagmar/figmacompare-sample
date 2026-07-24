@@ -1,46 +1,45 @@
 # uploadToFigma — Figma → Applitools baseline uploader
 
-Reads a list of Figma share links from an Excel file, downloads each design as an
-image, uploads it to Applitools Eyes, and saves it as a visual baseline. Results
-(app name, test name, viewport, baseline env name, batch URL, status) are written
-to a new output Excel file next to the input.
+Reads a list of Figma share links from the shared Figma Excel file, downloads each
+design as an image, uploads it to Applitools Eyes, and saves it as a visual baseline.
+Results (app name, baseline env name, batch URL, status) are written back into the
+same file, in place.
 
 This program is pure Java — no Selenium/Appium/browser needed.
 
 This is step 2 of the full workflow — see
 [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md) for how this fits
-together with the manual review steps and the `compareWithFigma` comparison program.
+together with the manual review steps and the `compareWithFigma` comparison programs.
 
 ## Quick start
 
 Templates live in **[figma-visual-testing/templates/](figma-visual-testing/templates/)**
 and are reference-only — never edit them directly. Copy them one level up, into
-**figma-visual-testing/**, to create your actual working files. That way the
-templates stay clean for the next person/next time, and it's obvious at a glance
-which files are "the master copy" (`templates/`) vs. "your working data"
-(`figma-visual-testing/`, right above it).
+**figma-visual-testing/**, to create your actual working files.
 
 Run these from the project root:
 
 ```bash
 cp figma-visual-testing/templates/config.properties.example figma-visual-testing/config.properties
-cp figma-visual-testing/templates/figma_baseline_input_template.xlsx figma-visual-testing/figma_baseline_input.xlsx
+cp figma-visual-testing/templates/figma_visual_tests_template.xlsx figma-visual-testing/figma_visual_tests.xlsx
 ```
 
 1. **Fill in the config**: open `figma-visual-testing/config.properties` (the copy
    you just made) and fill in `FIGMA_TOKEN`, `APPLITOOLS_API_KEY`, and
    `APPLITOOLS_SERVER_URL` (see [step 1](#1-one-time-setup) below for where to get
    these). This exact file is gitignored, so your tokens never get committed.
-2. **Fill in the input Excel**: open `figma-visual-testing/figma_baseline_input.xlsx`
+2. **Fill in the Excel file**: open `figma-visual-testing/figma_visual_tests.xlsx`
    (the copy you just made) and add one row per Figma design you want as a baseline
-   (see [step 2](#2-prepare-the-input-excel-file)).
+   (see [step 2](#2-fill-in-the-figma-excel-file)). This is the **one file** used
+   for the entire workflow — `uploadToFigma` and `compareWithFigma` both read from
+   and write back into it, in place.
 3. **Run it**:
    ```bash
    ./gradlew uploadToFigma
    ```
-4. **Check the results**: open `figma-visual-testing/figma_baseline_input_output.xlsx`
-   — it has the same rows, plus a `Status` column and a `Baseline Batch URL` link
-   to each uploaded baseline in Applitools.
+4. **Check the results**: re-open `figma-visual-testing/figma_visual_tests.xlsx`
+   — it now has a `Status` column and a `Baseline Batch URL` link to each uploaded
+   baseline in Applitools.
 
 Everything below is detail/reference for the steps above.
 
@@ -72,23 +71,28 @@ APPLITOOLS_API_KEY=your-applitools-api-key
 APPLITOOLS_SERVER_URL=https://eyesapi.applitools.com
 APP_NAME=Applitools-Images
 FIGMA_CACHE_DIR=downloaded_images/figma-cache
+FIGMA_EXCEL_FILE=
 ```
 
 Any of these can instead be set as an **environment variable** of the same name
 (e.g. `export FIGMA_TOKEN=...`) — an env var always overrides the value in
 `config.properties`. This is useful for CI.
 
-## 2. Prepare the input Excel file
+`FIGMA_EXCEL_FILE` is optional — see [Choosing the Excel file path](#choosing-the-excel-file-path) below.
 
-Copy [figma-visual-testing/templates/figma_baseline_input_template.xlsx](figma-visual-testing/templates/figma_baseline_input_template.xlsx)
-to `figma-visual-testing/figma_baseline_input.xlsx` (the default filename the
-program looks for):
+## 2. Fill in the Figma Excel file
+
+Copy [figma-visual-testing/templates/figma_visual_tests_template.xlsx](figma-visual-testing/templates/figma_visual_tests_template.xlsx)
+to `figma-visual-testing/figma_visual_tests.xlsx` (the default filename both
+`uploadToFigma` and `compareWithFigma` look for):
 
 ```bash
-cp figma-visual-testing/templates/figma_baseline_input_template.xlsx figma-visual-testing/figma_baseline_input.xlsx
+cp figma-visual-testing/templates/figma_visual_tests_template.xlsx figma-visual-testing/figma_visual_tests.xlsx
 ```
 
-Then fill in one row per page/component to validate.
+Then fill in one row per page/component to validate. This is the same file used all
+the way through `compareWithFigma` later — some columns only matter to this step,
+others only to the comparison step, and it's fine to leave those blank for now.
 
 | Column | Required? | Description |
 |---|---|---|
@@ -96,9 +100,11 @@ Then fill in one row per page/component to validate.
 | `Platform` | No (used later by `compareWithFigma`) | `Web`, `Android`, or `iOS`. Not used by this program, but keep it here so the same row can be reused later. |
 | `App URL / Screen Name` | No (used later by `compareWithFigma`) | For `Web`: the UAT/production URL. For `Android`/`iOS`: a screen name/identifier. Not used by this program, but keep it here so the same row can be reused later. |
 | `Test Name` | No | Overrides the auto-derived test name. If left blank, it's derived from the Figma node's name (sanitized to letters/digits/`-`/`_`). |
+| `Baseline Env Name` | No | Overrides the Applitools baseline environment name. If left blank, it's derived as `{testName}-baseline`. Provide this if you need a specific/existing baseline env name instead of the auto-derived one. |
 | `Viewport` | No | Overrides the viewport size, format `WIDTHxHEIGHT` (e.g. `1280x1024`). If left blank, it's derived from the downloaded image's pixel dimensions. |
 | `Scale` | No | Figma export scale, e.g. `1`, `2`, `3`. Defaults to `1` if blank. |
 | `Format` | No | Figma export format: `png`, `jpg`, `svg`, `pdf`. Defaults to `png` if blank. |
+| `Skip` | No | Set to `true`/`t`/`yes`/`y`/`skip` (case-insensitive) to exclude this row from a run without deleting it. Blank/anything else means the row runs normally. To run only specific rows, mark everything else as `Skip`. |
 
 Only `Figma URL` is required — everything else can be left blank and the program
 will fill in sensible defaults.
@@ -111,37 +117,44 @@ From the project root:
 ./gradlew uploadToFigma
 ```
 
-This defaults to reading `figma-visual-testing/figma_baseline_input.xlsx`. To use
-a different file or force a fresh download of every image, pass properties:
+### Choosing the Excel file path
+
+By default, both programs look for `figma-visual-testing/figma_visual_tests.xlsx`.
+You can point at a different file (e.g. separate files per project, or one for web
+and one for mobile) in priority order:
+
+1. **Command line** (highest priority): `-PfigmaExcel=<path>`
+2. **`config.properties`**: set `FIGMA_EXCEL_FILE=<path>` (itself overridable by a
+   `FIGMA_EXCEL_FILE` environment variable)
+3. **Built-in default**: `figma-visual-testing/figma_visual_tests.xlsx`
 
 ```bash
-./gradlew uploadToFigma -PinputExcel=path/to/file.xlsx -PforceRefresh=true
+./gradlew uploadToFigma -PfigmaExcel=figma-visual-testing/web_project_a.xlsx -PforceRefresh=true
 ```
 
 **Parameters:**
 
-- `-PinputExcel=<path>` — path to the input Excel file. Defaults to
-  `figma-visual-testing/figma_baseline_input.xlsx`.
+- `-PfigmaExcel=<path>` — path to the Excel file. Defaults per the priority order above.
 - `-PforceRefresh=true` — re-downloads every Figma image even if a cached copy
   already exists (useful when the Figma design has changed); defaults to `false`,
   which reuses any cached image already in `FIGMA_CACHE_DIR`.
 
 Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
 `UploadToFigma.java` and run its `main` method with Program Arguments set to
-`[inputExcelPath] [forceRefresh]` (both optional).
+`[figmaExcelPath] [forceRefresh]` (both optional).
 
 ## 4. Check the results
 
 - Downloaded Figma images are cached under `downloaded_images/figma-cache/`
   (configurable via `FIGMA_CACHE_DIR`), named `{fileKey}_{nodeId}_{scale}x.{format}`.
-- An output file is written alongside the input, named
-  `<input-file-name>_output.xlsx`, containing all the original columns plus:
-  `App Name`, `Baseline Env Name`, `Baseline Batch URL`, `Status`, `Error Message`.
+- Results are written back into the same Excel file, in place: `App Name`,
+  `Baseline Env Name`, `Baseline Batch URL`, `Status`, `Error Message`.
 - Any row where `Status` is `Failed` will have a message in `Error Message` — check
   the console output for the full stack trace.
 - On success, `Baseline Batch URL` links directly to the uploaded baseline in the
   Applitools dashboard.
 - The console also prints a one-line summary at the end, e.g. `4 of 5 succeeded.`
+- Rows marked `Skip` are left completely untouched and don't count toward that summary.
 
 ## Notes
 
@@ -152,3 +165,5 @@ Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
 - A Figma URL without a `node-id` (i.e. a link to a whole file/page rather than a
   specific frame) is not currently supported — use *Copy link to selection* on the
   specific frame/component in Figma.
+- Since the Excel file is updated in place, close it in Excel before running —
+  a file locked open by another program can't be overwritten.

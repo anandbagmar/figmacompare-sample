@@ -54,17 +54,17 @@ class and choosing **Run**.
 * [BajajFinservWebTest.java](../src/test/java/io/samples/web/selenium/BajajFinservWebTest.java) —
   the **web path of `compareWithFigma`** (see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
-  fixed single-page test: it's data-driven from an Excel file (default
-  `figma-visual-testing/figma_compare_input.xlsx`, override with
-  `-DcompareExcel=<path>`), one TestNG invocation per `Platform=Web` row. For each row it
-  opens `App URL / Screen Name` with Selenium, runs an Applitools Eyes comparison against
+  fixed single-page test: it's data-driven from the shared Figma Excel file (default
+  `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
+  one TestNG invocation per non-`Skip` `Platform=Web` row. For each row it opens
+  `App URL / Screen Name` with Selenium, runs an Applitools Eyes comparison against
   the `Baseline Env Name` baseline (full page if `Locator` is blank, otherwise just that
   CSS/XPath-selected region), and writes `Comparison Batch URL` + `Validation Status` back
-  to an output Excel next to the input, plus a final pass/fail summary.
+  into the same file in place, plus a final pass/fail summary.
   ```bash
   ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
   # or against a specific file:
-  ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PcompareExcel=path/to/file.xlsx
+  ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PfigmaExcel=path/to/file.xlsx
   ```
 
 Both test classes configure Eyes via the Visual Grid runner (`VisualGridRunner`), so a

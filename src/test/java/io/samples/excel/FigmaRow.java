@@ -6,12 +6,13 @@ public class FigmaRow {
     public String platform;
     public String appUrlOrScreenName;
     public String testName;
+    public String baselineEnvName;
     public String viewport;
     public String scale;
     public String format;
+    public String skip;
 
     public String appName;
-    public String baselineEnvName;
     public String baselineBatchUrl;
     public String status;
     public String errorMessage;

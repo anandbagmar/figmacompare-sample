@@ -1,42 +1,38 @@
 package io.samples;
 
-import java.io.File;
 import java.util.List;
 
 import com.applitools.eyes.RectangleSize;
 
 import io.samples.config.AppConfig;
 import io.samples.excel.ExcelHelper;
+import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
 import io.samples.figma.FigmaClient;
 
 /**
- * Reads Figma URLs from an input Excel file, uploads each corresponding Figma image to
- * Applitools Eyes as a baseline, and writes the results to an output Excel file.
+ * Reads Figma URLs from the shared Figma Excel file, uploads each corresponding Figma
+ * image to Applitools Eyes as a baseline, and writes the results back to the same file.
  *
- * Expected input columns (header row, any order): Figma URL, Platform, App URL / Screen
- * Name, Test Name, Viewport, Scale, Format. Only "Figma URL" is required per row; the
- * rest are optional overrides.
+ * Expected columns (header row, any order): Figma URL, Platform, App URL / Screen Name,
+ * Test Name, Baseline Env Name, Viewport, Scale, Format, Skip. Only "Figma URL" is
+ * required per row; the rest are optional. "Baseline Env Name" is auto-derived as
+ * "{testName}-baseline" if left blank, or used as-is if provided. Rows with "Skip" set to
+ * true/t/yes/y/skip (case-insensitive) are left untouched and not processed.
  *
- * Usage: UploadToFigma [inputExcelPath] [forceRefresh: true|false]
- * inputExcelPath defaults to figma-visual-testing/figma_baseline_input.xlsx
+ * Usage: UploadToFigma [figmaExcelPath] [forceRefresh: true|false]
+ * figmaExcelPath, if omitted, falls back to -DfigmaExcel, then FIGMA_EXCEL_FILE in
+ * config.properties/env, then a built-in default (see FigmaExcelFile).
  */
 public class UploadToFigma {
 
     private static final String DEFAULT_SCALE = "1";
     private static final String DEFAULT_FORMAT = "png";
-    private static final String DEFAULT_INPUT_PATH = AppConfig.CONFIG_DIR + File.separator
-            + "figma_baseline_input.xlsx";
 
     public static void main(String[] args) {
-        String inputPath = args.length > 0 ? args[0] : DEFAULT_INPUT_PATH;
-        boolean forceRefresh = args.length > 1 && Boolean.parseBoolean(args[1]);
-
-        if (!new File(inputPath).exists()) {
-            throw new IllegalStateException("Input Excel file not found: " + inputPath + System.lineSeparator()
-                    + "Copy " + AppConfig.TEMPLATES_DIR + "/figma_baseline_input_template.xlsx to " + inputPath
-                    + " and fill in your rows, or pass a different path as the first argument.");
-        }
+        String pathOverride = args.length > 0 ? args[0] : System.getProperty("figmaExcel");
+        String figmaExcelPath = FigmaExcelFile.resolvePath(pathOverride);
+        boolean forceRefresh = args.length > 1 ? Boolean.parseBoolean(args[1]) : Boolean.getBoolean("forceRefresh");
 
         String figmaToken = AppConfig.get("FIGMA_TOKEN");
         String applitoolsApiKey = AppConfig.get("APPLITOOLS_API_KEY");
@@ -44,7 +40,7 @@ public class UploadToFigma {
         String appName = AppConfig.get("APP_NAME", "Applitools-Images");
         String cacheDir = AppConfig.get("FIGMA_CACHE_DIR", "downloaded_images/figma-cache");
 
-        String configFilePath = AppConfig.CONFIG_DIR + File.separator + AppConfig.CONFIG_FILE_NAME;
+        String configFilePath = AppConfig.CONFIG_DIR + "/" + AppConfig.CONFIG_FILE_NAME;
         if (null == figmaToken) {
             throw new IllegalStateException("FIGMA_TOKEN is not set. Open " + configFilePath
                     + " and fill in FIGMA_TOKEN (or set it as an environment variable).");
@@ -59,19 +55,21 @@ public class UploadToFigma {
         }
 
         FigmaClient figmaClient = new FigmaClient(figmaToken);
-        List<FigmaRow> rows = ExcelHelper.readRows(inputPath);
-        System.out.println("Loaded " + rows.size() + " row(s) from " + inputPath);
+        List<FigmaRow> allRows = ExcelHelper.readRows(figmaExcelPath);
+        List<FigmaRow> toProcess = FigmaExcelFile.excludeSkipped(allRows);
+        System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath + " ("
+                + (allRows.size() - toProcess.size()) + " skipped)");
 
-        for (FigmaRow row : rows) {
+        for (FigmaRow row : toProcess) {
             processRow(row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir, forceRefresh);
         }
 
-        String outputPath = ExcelHelper.deriveOutputPath(inputPath);
-        ExcelHelper.writeRows(inputPath, rows, outputPath);
+        ExcelHelper.writeRows(figmaExcelPath, allRows);
 
-        long succeeded = rows.stream().filter(r -> "Success".equals(r.status)).count();
+        long succeeded = toProcess.stream().filter(r -> "Success".equals(r.status)).count();
         System.out.println();
-        System.out.println(succeeded + " of " + rows.size() + " succeeded. Results written to " + outputPath);
+        System.out.println(succeeded + " of " + toProcess.size() + " succeeded. Results written to "
+                + figmaExcelPath);
     }
 
     private static void processRow(FigmaRow row, FigmaClient figmaClient, String appName, String applitoolsApiKey,
@@ -85,7 +83,9 @@ public class UploadToFigma {
             if (isBlank(row.testName)) {
                 row.testName = sanitizeTestName(figmaClient.fetchNodeName(row.figmaUrl));
             }
-            row.baselineEnvName = row.testName + "-baseline";
+            if (isBlank(row.baselineEnvName)) {
+                row.baselineEnvName = row.testName + "-baseline";
+            }
 
             RectangleSize viewportSize = ExcelHelper.parseViewport(row.viewport);
 

@@ -28,8 +28,8 @@ import io.appium.java_client.service.local.AppiumDriverLocalService;
 import io.samples.appium.AppiumServerSupport;
 import io.samples.eyes.BatchSupport;
 import io.samples.eyes.ComparisonResultRecorder;
-import io.samples.excel.CompareRows;
 import io.samples.excel.ExcelHelper;
+import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
 
 /**
@@ -41,10 +41,10 @@ import io.samples.excel.FigmaRow;
  * navigate there" for a native app screen — reaching one usually needs login, menu
  * navigation, or test data setup specific to that app. So this class is the template for
  * one Appium test class per app: it owns a small registry of "screen flows" (one method
- * per distinct "App URL / Screen Name" value used in the compare input Excel for this
+ * per distinct "App URL / Screen Name" value used in the shared Figma Excel file for this
  * app), and a data-driven test that looks up and runs the matching flow for each
- * "Platform=Android" row, then does the same Applitools comparison + Excel write-back as
- * the web path.
+ * "Platform=Android" row, then does the same Applitools comparison + Excel write-back (in
+ * place) as the web path. Rows with "Skip" set are left untouched and not processed.
  */
 public class BajajFinservAndroidTest {
 
@@ -52,16 +52,14 @@ public class BajajFinservAndroidTest {
     private static final String APK_NAME = "sampleApps" + File.separator + "app_npu_v8.3.17.apk";
     private static final boolean IS_FULL_RESET = true;
     private static final boolean IS_EYES_ENABLED = true;
-    private static final String DEFAULT_COMPARE_INPUT_PATH = "figma-visual-testing/figma_compare_input.xlsx";
-    private static final String COMPARE_EXCEL_PROPERTY = "compareExcel";
 
     private static final String userName = System.getProperty("user.name");
     private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
 
     /**
      * One entry per distinct "App URL / Screen Name" value used for this app in the
-     * compare input Excel. Add a new entry here whenever a new screen needs comparing;
-     * the flow just has to leave the app on that screen when it returns.
+     * shared Figma Excel file. Add a new entry here whenever a new screen needs
+     * comparing; the flow just has to leave the app on that screen when it returns.
      */
     private static final Map<String, Consumer<AppiumDriver>> SCREEN_FLOWS = new HashMap<>();
     static {
@@ -73,7 +71,7 @@ public class BajajFinservAndroidTest {
     private static AppiumDriverLocalService localAppiumServer;
     private static String appiumServerUrl = "http://localhost:4723/wd/hub/";
     private static BatchInfo batch;
-    private static String compareExcelPath;
+    private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
 
     private AppiumDriver driver;
@@ -91,15 +89,19 @@ public class BajajFinservAndroidTest {
         BatchSupport.closeBatch(batch);
         AppiumServerSupport.stop(localAppiumServer);
         if (null != allRows && !allRows.isEmpty()) {
-            CompareRows.writeResultsAndSummary(compareExcelPath, allRows);
+            ExcelHelper.writeRows(figmaExcelPath, allRows);
+            long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
+            System.out.println();
+            System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
+                    + figmaExcelPath);
         }
     }
 
     @DataProvider(name = "androidRows")
     public static Object[][] androidRows() {
-        compareExcelPath = CompareRows.resolveExcelPath(COMPARE_EXCEL_PROPERTY, DEFAULT_COMPARE_INPUT_PATH);
-        allRows = ExcelHelper.readRows(compareExcelPath);
-        List<FigmaRow> androidRows = CompareRows.filterByPlatform(allRows, "android");
+        figmaExcelPath = FigmaExcelFile.resolvePath(System.getProperty("figmaExcel"));
+        allRows = ExcelHelper.readRows(figmaExcelPath);
+        List<FigmaRow> androidRows = FigmaExcelFile.filterByPlatform(allRows, "android");
 
         Object[][] data = new Object[androidRows.size()][1];
         for (int i = 0; i < androidRows.size(); i++) {

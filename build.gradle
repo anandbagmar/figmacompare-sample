@@ -63,8 +63,8 @@ test {
         include classFilePattern
         println("Running only test class include pattern: ${classFilePattern}")
     }
-    if (project.hasProperty("compareExcel")) {
-        systemProperty "compareExcel", project.property("compareExcel")
+    if (project.hasProperty("figmaExcel")) {
+        systemProperty "figmaExcel", project.property("figmaExcel")
     }
 
     doFirst {
@@ -103,13 +103,16 @@ test {
 
 task uploadToFigma(type: JavaExec) {
     group = "applitools"
-    description = "Upload Figma designs listed in an input Excel file to Applitools as baselines"
+    description = "Upload Figma designs listed in the shared Figma Excel file to Applitools as baselines"
     classpath = sourceSets.test.runtimeClasspath
     mainClass.set("io.samples.UploadToFigma")
-    def inputExcel = project.findProperty("inputExcel") ?: "figma-visual-testing/figma_baseline_input.xlsx"
-    def forceRefresh = project.findProperty("forceRefresh") ?: "false"
     doFirst {
-        args = [inputExcel, forceRefresh]
+        if (project.hasProperty("figmaExcel")) {
+            systemProperty "figmaExcel", project.property("figmaExcel")
+        }
+        if (project.hasProperty("forceRefresh")) {
+            systemProperty "forceRefresh", project.property("forceRefresh")
+        }
     }
 }
 

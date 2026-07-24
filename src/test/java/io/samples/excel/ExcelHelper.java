@@ -1,6 +1,5 @@
 package io.samples.excel;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,11 +25,12 @@ public class ExcelHelper {
     private static final String COL_PLATFORM = "Platform";
     private static final String COL_APP_URL_OR_SCREEN_NAME = "App URL / Screen Name";
     private static final String COL_TEST_NAME = "Test Name";
+    private static final String COL_BASELINE_ENV_NAME = "Baseline Env Name";
     private static final String COL_VIEWPORT = "Viewport";
     private static final String COL_SCALE = "Scale";
     private static final String COL_FORMAT = "Format";
+    private static final String COL_SKIP = "Skip";
     private static final String COL_APP_NAME = "App Name";
-    private static final String COL_BASELINE_ENV_NAME = "Baseline Env Name";
     private static final String COL_BASELINE_BATCH_URL = "Baseline Batch URL";
     private static final String COL_STATUS = "Status";
     private static final String COL_ERROR_MESSAGE = "Error Message";
@@ -38,8 +38,16 @@ public class ExcelHelper {
     private static final String COL_COMPARISON_BATCH_URL = "Comparison Batch URL";
     private static final String COL_VALIDATION_STATUS = "Validation Status";
 
-    private static final List<String> OUTPUT_ONLY_COLUMNS = List.of(
-            COL_APP_NAME, COL_BASELINE_ENV_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE,
+    /**
+     * The single, fixed schema for the unified Figma visual-testing Excel file. Always
+     * written in this order, regardless of what order columns happen to be in on disk -
+     * this keeps read/write simple since the file is now updated in place at every stage
+     * instead of being copied between stage-specific files.
+     */
+    private static final List<String> ALL_COLUMNS = List.of(
+            COL_FIGMA_URL, COL_PLATFORM, COL_APP_URL_OR_SCREEN_NAME, COL_TEST_NAME, COL_BASELINE_ENV_NAME,
+            COL_VIEWPORT, COL_SCALE, COL_FORMAT, COL_SKIP,
+            COL_APP_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE,
             COL_LOCATOR, COL_COMPARISON_BATCH_URL, COL_VALIDATION_STATUS);
 
     private ExcelHelper() {
@@ -61,11 +69,12 @@ public class ExcelHelper {
                 figmaRow.platform = getCellValue(row, headerIndex.get(COL_PLATFORM));
                 figmaRow.appUrlOrScreenName = getCellValue(row, headerIndex.get(COL_APP_URL_OR_SCREEN_NAME));
                 figmaRow.testName = getCellValue(row, headerIndex.get(COL_TEST_NAME));
+                figmaRow.baselineEnvName = getCellValue(row, headerIndex.get(COL_BASELINE_ENV_NAME));
                 figmaRow.viewport = getCellValue(row, headerIndex.get(COL_VIEWPORT));
                 figmaRow.scale = getCellValue(row, headerIndex.get(COL_SCALE));
                 figmaRow.format = getCellValue(row, headerIndex.get(COL_FORMAT));
+                figmaRow.skip = getCellValue(row, headerIndex.get(COL_SKIP));
                 figmaRow.appName = getCellValue(row, headerIndex.get(COL_APP_NAME));
-                figmaRow.baselineEnvName = getCellValue(row, headerIndex.get(COL_BASELINE_ENV_NAME));
                 figmaRow.baselineBatchUrl = getCellValue(row, headerIndex.get(COL_BASELINE_BATCH_URL));
                 figmaRow.status = getCellValue(row, headerIndex.get(COL_STATUS));
                 figmaRow.errorMessage = getCellValue(row, headerIndex.get(COL_ERROR_MESSAGE));
@@ -80,47 +89,32 @@ public class ExcelHelper {
         return rows;
     }
 
-    public static void writeRows(String inputPath, List<FigmaRow> rows, String outputPath) {
-        List<String> headers;
-        try (FileInputStream fis = new FileInputStream(inputPath); Workbook inWorkbook = new XSSFWorkbook(fis)) {
-            Row headerRow = inWorkbook.getSheetAt(0).getRow(0);
-            headers = new ArrayList<>();
-            for (Cell cell : headerRow) {
-                headers.add(cell.getStringCellValue().trim());
-            }
-        } catch (IOException ex) {
-            throw new RuntimeException("Unable to read input Excel headers: " + inputPath, ex);
-        }
-        for (String outputColumn : OUTPUT_ONLY_COLUMNS) {
-            if (!headers.contains(outputColumn)) {
-                headers.add(outputColumn);
-            }
-        }
-
+    /** Overwrites the same file in place - the whole point of the unified single-file flow. */
+    public static void writeRows(String path, List<FigmaRow> rows) {
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Baselines");
             Row headerRow = sheet.createRow(0);
-            for (int col = 0; col < headers.size(); col++) {
-                headerRow.createCell(col).setCellValue(headers.get(col));
+            for (int col = 0; col < ALL_COLUMNS.size(); col++) {
+                headerRow.createCell(col).setCellValue(ALL_COLUMNS.get(col));
             }
 
             int rowNum = 1;
             for (FigmaRow figmaRow : rows) {
                 Map<String, String> values = toMap(figmaRow);
                 Row row = sheet.createRow(rowNum++);
-                for (int col = 0; col < headers.size(); col++) {
-                    row.createCell(col).setCellValue(values.getOrDefault(headers.get(col), ""));
+                for (int col = 0; col < ALL_COLUMNS.size(); col++) {
+                    row.createCell(col).setCellValue(values.getOrDefault(ALL_COLUMNS.get(col), ""));
                 }
             }
-            for (int col = 0; col < headers.size(); col++) {
+            for (int col = 0; col < ALL_COLUMNS.size(); col++) {
                 sheet.autoSizeColumn(col);
             }
 
-            try (FileOutputStream fos = new FileOutputStream(outputPath)) {
+            try (FileOutputStream fos = new FileOutputStream(path)) {
                 workbook.write(fos);
             }
         } catch (IOException ex) {
-            throw new RuntimeException("Unable to write output Excel file: " + outputPath, ex);
+            throw new RuntimeException("Unable to write Excel file: " + path, ex);
         }
     }
 
@@ -135,27 +129,18 @@ public class ExcelHelper {
         return new RectangleSize(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()));
     }
 
-    public static String deriveOutputPath(String inputPath) {
-        File inputFile = new File(inputPath);
-        String name = inputFile.getName();
-        int dotIndex = name.lastIndexOf('.');
-        String base = dotIndex >= 0 ? name.substring(0, dotIndex) : name;
-        String ext = dotIndex >= 0 ? name.substring(dotIndex) : ".xlsx";
-        File parent = inputFile.getAbsoluteFile().getParentFile();
-        return new File(parent, base + "_output" + ext).getPath();
-    }
-
     private static Map<String, String> toMap(FigmaRow row) {
         Map<String, String> map = new LinkedHashMap<>();
         map.put(COL_FIGMA_URL, nullToEmpty(row.figmaUrl));
         map.put(COL_PLATFORM, nullToEmpty(row.platform));
         map.put(COL_APP_URL_OR_SCREEN_NAME, nullToEmpty(row.appUrlOrScreenName));
         map.put(COL_TEST_NAME, nullToEmpty(row.testName));
+        map.put(COL_BASELINE_ENV_NAME, nullToEmpty(row.baselineEnvName));
         map.put(COL_VIEWPORT, nullToEmpty(row.viewport));
         map.put(COL_SCALE, nullToEmpty(row.scale));
         map.put(COL_FORMAT, nullToEmpty(row.format));
+        map.put(COL_SKIP, nullToEmpty(row.skip));
         map.put(COL_APP_NAME, nullToEmpty(row.appName));
-        map.put(COL_BASELINE_ENV_NAME, nullToEmpty(row.baselineEnvName));
         map.put(COL_BASELINE_BATCH_URL, nullToEmpty(row.baselineBatchUrl));
         map.put(COL_STATUS, nullToEmpty(row.status));
         map.put(COL_ERROR_MESSAGE, nullToEmpty(row.errorMessage));

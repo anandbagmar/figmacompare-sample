@@ -56,5 +56,4 @@ out/
 .github/
 
 downloaded_images/
-*_output.xlsx
 figma-visual-testing/config.properties
