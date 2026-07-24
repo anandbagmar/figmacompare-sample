@@ -37,7 +37,7 @@ import io.samples.excel.FigmaRow;
  * Web path of the compareWithFigma step described in README_FigmaVisualValidation.md:
  * for every "Web" platform row in the shared Figma Excel file, opens "App URL / Screen
  * Name" with Selenium and compares it against the Figma baseline uploaded by
- * uploadToFigma, using "Locator" (if present) to scope the check to a single component
+ * uploadFromFigma, using "Locator" (if present) to scope the check to a single component
  * instead of the full page. Results (Comparison Batch URL, Validation Status) are
  * written back to the same file in place, plus a pass/fail summary. Rows with "Skip" set
  * are left untouched and not processed.

@@ -9,7 +9,7 @@ import io.samples.config.AppConfig;
 
 /**
  * Path resolution, platform/skip filtering, and load/save for the single, unified Figma
- * visual-testing Excel file that both uploadToFigma and compareWithFigma (web/mobile) read
+ * visual-testing Excel file that both uploadFromFigma and compareWithFigma (web/mobile) read
  * from and write back to in place. See README_FigmaVisualValidation.md.
  */
 public class FigmaExcelFile {

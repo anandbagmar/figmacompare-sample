@@ -2,14 +2,14 @@
 
 This is the end-to-end runbook for validating Bajaj Finserv's web/mobile
 implementation against approved Figma designs. It ties together two programs
-(`uploadToFigma`, `compareWithFigma`) and the manual steps around them, all driven
+(`uploadFromFigma`, `compareWithFigma`) and the manual steps around them, all driven
 by **one shared Excel file** that accumulates columns as it moves through the
 pipeline — the same file is read from and written back to (in place) at every
 stage, so there's no copying between stage-specific files.
 
 | Status | Program |
 |---|---|
-| ✅ Implemented | [uploadToFigma](README_uploadToFigma.md) |
+| ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
 | ✅ Implemented | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
 | ✅ Implemented (Android; template for other apps/iOS) | `compareWithFigma` mobile path — [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
@@ -30,7 +30,7 @@ directly). The file can have any number of rows; both programs iterate every row
 skipping any row marked `Skip`.
 
 It's **one file for the whole pipeline**, by default `figma-visual-testing/figma_visual_tests.xlsx`
-(configurable — see [Choosing the Excel file path](README_uploadToFigma.md#choosing-the-excel-file-path)).
+(configurable — see [Choosing the Excel file path](README_uploadFromFigma.md#choosing-the-excel-file-path)).
 Some columns only matter to one stage; it's fine to leave those blank until that
 stage runs:
 
@@ -38,14 +38,14 @@ stage runs:
 |---|---|
 | `Figma URL`, `Platform`, `App URL / Screen Name` | Step 1 (UI/UX team) |
 | `Test Name`, `Baseline Env Name`, `Viewport`, `Scale`, `Format`, `Skip` | Step 1, optional — auto-derived by Step 2 if left blank |
-| `App Name`, `Baseline Batch URL`, `Status`, `Error Message` | Step 2 (`uploadToFigma`) |
+| `App Name`, `Baseline Batch URL`, `Status`, `Error Message` | Step 2 (`uploadFromFigma`) |
 | `Locator` | Step 3 (QA), web rows only |
 | `Comparison Batch URL`, `Validation Status` | Step 4 (`compareWithFigma`) |
 
 ## Step 1 — Prepare the Excel file *(Manually prepared by the UI/UX team)*
 
 Copy the template and fill in one row per Figma design to validate — see
-[README_uploadToFigma.md § 2](README_uploadToFigma.md#2-fill-in-the-figma-excel-file)
+[README_uploadFromFigma.md § 2](README_uploadFromFigma.md#2-fill-in-the-figma-excel-file)
 for the full column reference. The two columns worth calling out here:
 
 | Column | Required? | Notes |
@@ -58,7 +58,7 @@ for the full column reference. The two columns worth calling out here:
 
 ## Step 2 — Upload Figma designs as baselines *(Automated — QA)* ✅
 
-Run `./gradlew uploadToFigma`. Details: [README_uploadToFigma.md](README_uploadToFigma.md).
+Run `./gradlew uploadFromFigma`. Details: [README_uploadFromFigma.md](README_uploadFromFigma.md).
 
 Writes `App Name`, `Baseline Env Name` (if not already provided), `Baseline Batch URL`,
 `Status` back into the same file, in place.
@@ -80,7 +80,7 @@ open `Baseline Batch URL` and decide what should be validated:
 captures the screen/region, runs the Applitools Eyes comparison against
 `Baseline Env Name` from Step 2, and writes back `Comparison Batch URL` +
 `Validation Status` (`Passed`/`Unresolved`/`Failed`) into the same file, in place —
-plus a final pass/fail summary, the same pattern `uploadToFigma` already uses.
+plus a final pass/fail summary, the same pattern `uploadFromFigma` already uses.
 
 **4a. Web rows — fully generic. ✅ Implemented** as
 [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java):

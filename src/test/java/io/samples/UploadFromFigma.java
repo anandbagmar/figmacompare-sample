@@ -20,11 +20,11 @@ import io.samples.figma.FigmaClient;
  * "{testName}-baseline" if left blank, or used as-is if provided. Rows with "Skip" set to
  * true/t/yes/y/skip (case-insensitive) are left untouched and not processed.
  *
- * Usage: UploadToFigma [figmaExcelPath] [forceRefresh: true|false]
+ * Usage: UploadFromFigma [figmaExcelPath] [forceRefresh: true|false]
  * figmaExcelPath, if omitted, falls back to -DfigmaExcel, then FIGMA_EXCEL_FILE in
  * config.properties/env, then a built-in default (see FigmaExcelFile).
  */
-public class UploadToFigma {
+public class UploadFromFigma {
 
     private static final String DEFAULT_SCALE = "1";
     private static final String DEFAULT_FORMAT = "png";

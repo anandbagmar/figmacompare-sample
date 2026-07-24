@@ -76,7 +76,7 @@ single local browser session fans out to every browser/viewport combination adde
 Instead of manually placing an image under `downloaded_images/` and calling
 `Baseline.uploadImageAndSetAsBaseline(...)` as `WebFigmaTest` currently does, you can
 upload Figma designs in bulk via the
-[uploadToFigma](../README_uploadToFigma.md) utility — its output Excel (with `Locator`
+[uploadFromFigma](../README_uploadFromFigma.md) utility — its output Excel (with `Locator`
 filled in per row) is exactly what `BajajFinservWebTest` expects as input.
 
 Back to main [README](../README.md)

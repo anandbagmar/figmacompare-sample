@@ -4,7 +4,7 @@ This project validates that Bajaj Finserv's live web and mobile applications mat
 their approved Figma designs, using [Applitools Eyes](https://applitools.com/platform/eyes/)
 as the visual comparison engine. The workflow:
 
-1. **Upload Figma designs as baselines** — the [uploadToFigma](README_uploadToFigma.md)
+1. **Upload Figma designs as baselines** — the [uploadFromFigma](README_uploadFromFigma.md)
    utility reads a list of Figma share links from an Excel file, downloads each design,
    and uploads it to Applitools Eyes as the approved visual baseline. Pure Java, no
    browser/device needed.
@@ -30,5 +30,5 @@ without either side needing to touch the other's tooling.
 
 # Running the [Appium-Java tests in local Jenkins](docs/README_Jenkins.md)
 
-# Uploading [Figma designs as Applitools baselines](README_uploadToFigma.md)
+# Uploading [Figma designs as Applitools baselines](README_uploadFromFigma.md)
 

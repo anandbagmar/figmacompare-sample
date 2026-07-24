@@ -101,11 +101,11 @@ test {
     }
 }
 
-task uploadToFigma(type: JavaExec) {
+task uploadFromFigma(type: JavaExec) {
     group = "applitools"
     description = "Upload Figma designs listed in the shared Figma Excel file to Applitools as baselines"
     classpath = sourceSets.test.runtimeClasspath
-    mainClass.set("io.samples.UploadToFigma")
+    mainClass.set("io.samples.UploadFromFigma")
     doFirst {
         if (project.hasProperty("figmaExcel")) {
             systemProperty "figmaExcel", project.property("figmaExcel")

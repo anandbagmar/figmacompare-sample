@@ -1,4 +1,4 @@
-# uploadToFigma — Figma → Applitools baseline uploader
+# uploadFromFigma — Figma → Applitools baseline uploader
 
 Reads a list of Figma share links from the shared Figma Excel file, downloads each
 design as an image, uploads it to Applitools Eyes, and saves it as a visual baseline.
@@ -31,11 +31,11 @@ cp figma-visual-testing/templates/figma_visual_tests_template.xlsx figma-visual-
 2. **Fill in the Excel file**: open `figma-visual-testing/figma_visual_tests.xlsx`
    (the copy you just made) and add one row per Figma design you want as a baseline
    (see [step 2](#2-fill-in-the-figma-excel-file)). This is the **one file** used
-   for the entire workflow — `uploadToFigma` and `compareWithFigma` both read from
+   for the entire workflow — `uploadFromFigma` and `compareWithFigma` both read from
    and write back into it, in place.
 3. **Run it**:
    ```bash
-   ./gradlew uploadToFigma
+   ./gradlew uploadFromFigma
    ```
 4. **Check the results**: re-open `figma-visual-testing/figma_visual_tests.xlsx`
    — it now has a `Status` column and a `Baseline Batch URL` link to each uploaded
@@ -84,7 +84,7 @@ Any of these can instead be set as an **environment variable** of the same name
 
 Copy [figma-visual-testing/templates/figma_visual_tests_template.xlsx](figma-visual-testing/templates/figma_visual_tests_template.xlsx)
 to `figma-visual-testing/figma_visual_tests.xlsx` (the default filename both
-`uploadToFigma` and `compareWithFigma` look for):
+`uploadFromFigma` and `compareWithFigma` look for):
 
 ```bash
 cp figma-visual-testing/templates/figma_visual_tests_template.xlsx figma-visual-testing/figma_visual_tests.xlsx
@@ -114,7 +114,7 @@ will fill in sensible defaults.
 From the project root:
 
 ```bash
-./gradlew uploadToFigma
+./gradlew uploadFromFigma
 ```
 
 ### Choosing the Excel file path
@@ -129,7 +129,7 @@ and one for mobile) in priority order:
 3. **Built-in default**: `figma-visual-testing/figma_visual_tests.xlsx`
 
 ```bash
-./gradlew uploadToFigma -PfigmaExcel=figma-visual-testing/web_project_a.xlsx -PforceRefresh=true
+./gradlew uploadFromFigma -PfigmaExcel=figma-visual-testing/web_project_a.xlsx -PforceRefresh=true
 ```
 
 **Parameters:**
@@ -140,7 +140,7 @@ and one for mobile) in priority order:
   which reuses any cached image already in `FIGMA_CACHE_DIR`.
 
 Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
-`UploadToFigma.java` and run its `main` method with Program Arguments set to
+`UploadFromFigma.java` and run its `main` method with Program Arguments set to
 `[figmaExcelPath] [forceRefresh]` (both optional).
 
 ## 4. Check the results
