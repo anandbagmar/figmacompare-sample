@@ -41,6 +41,7 @@ public class UploadFromFigma {
         String applitoolsServerUrl = AppConfig.get("APPLITOOLS_SERVER_URL");
         String appName = AppConfig.get("APP_NAME", "Applitools-Images");
         String cacheDir = AppConfig.get("FIGMA_CACHE_DIR", "downloaded_images/figma-cache");
+        String batchName = AppConfig.get("APPLITOOLS_BATCH_NAME", "Upload from Figma");
 
         String configFilePath = AppConfig.CONFIG_DIR + "/" + AppConfig.CONFIG_FILE_NAME;
         if (null == figmaToken) {
@@ -68,7 +69,7 @@ public class UploadFromFigma {
         try {
             for (FigmaRow row : toProcess) {
                 processRow(runner, row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
-                        forceRefresh);
+                        forceRefresh, batchName);
             }
         } finally {
             runner.close();
@@ -83,7 +84,8 @@ public class UploadFromFigma {
     }
 
     private static void processRow(EyesRunner runner, FigmaRow row, FigmaClient figmaClient, String appName,
-            String applitoolsApiKey, String applitoolsServerUrl, String cacheDir, boolean forceRefresh) {
+            String applitoolsApiKey, String applitoolsServerUrl, String cacheDir, boolean forceRefresh,
+            String batchName) {
         System.out.println("Processing: " + row.figmaUrl);
         row.appName = appName;
         try {
@@ -103,7 +105,7 @@ public class UploadFromFigma {
 
             BaselineUploadResult result = Baseline.uploadImageAndSetAsBaseline(
                     runner, imageFile.getAbsolutePath(), row.baselineEnvName, appName, row.testName, viewportSize,
-                    applitoolsApiKey, applitoolsServerUrl);
+                    applitoolsApiKey, applitoolsServerUrl, batchName);
 
             row.viewport = result.getViewportSize().getWidth() + "x" + result.getViewportSize().getHeight();
             if (null != result.getTestResults()) {

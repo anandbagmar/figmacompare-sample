@@ -5,6 +5,7 @@ import java.io.File;
 
 import javax.imageio.ImageIO;
 
+import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.EyesRunner;
 import com.applitools.eyes.RectangleSize;
 import com.applitools.eyes.TestResults;
@@ -17,7 +18,7 @@ public class Baseline {
             String testName, RectangleSize viewportSize) {
         EyesRunner runner = new ImageRunner();
         try {
-            doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
+            doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, null, null, null);
         } finally {
             runner.close();
         }
@@ -28,7 +29,7 @@ public class Baseline {
         EyesRunner runner = new ImageRunner();
         try {
             return uploadImageAndSetAsBaseline(runner, baseLineFilePath, baselineName, appName, testName,
-                    viewportSize, apiKey, serverUrl);
+                    viewportSize, apiKey, serverUrl, null);
         } finally {
             runner.close();
         }
@@ -36,14 +37,19 @@ public class Baseline {
 
     /**
      * Same as the other overload, but reuses a caller-supplied, caller-owned EyesRunner
-     * instead of creating (and closing) a new one per call. Applitools' EyesRunner starts
-     * a background "universal core" process on creation - reuse one runner across many
-     * uploads (e.g. a batch loop) instead of repeatedly starting/stopping it per image.
-     * The caller is responsible for calling runner.close() once, after all uploads.
+     * instead of creating (and closing) a new one per call, and lets the caller pin an
+     * explicit batch name. Applitools' EyesRunner starts a background "universal core"
+     * process on creation - reuse one runner across many uploads (e.g. a batch loop)
+     * instead of repeatedly starting/stopping it per image. Without an explicit batch
+     * name, the SDK lazily creates a default batch on the first eyes.open() call and
+     * reuses it for every later test on the same runner - so when sharing a runner across
+     * a loop, always pass a real batchName here, or every row ends up sharing whichever
+     * batch got auto-created for the first row. The caller is responsible for calling
+     * runner.close() once, after all uploads.
      */
     public static BaselineUploadResult uploadImageAndSetAsBaseline(EyesRunner runner, String baseLineFilePath,
             String baselineName, String appName, String testName, RectangleSize viewportSize, String apiKey,
-            String serverUrl) {
+            String serverUrl, String batchName) {
         if (null == apiKey || apiKey.isBlank()) {
             throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
                     + "Set it in config.properties or as an environment variable.");
@@ -52,11 +58,13 @@ public class Baseline {
             throw new IllegalStateException("APPLITOOLS_SERVER_URL is required but was null/blank. "
                     + "Set it in config.properties or as an environment variable.");
         }
-        return doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl);
+        return doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl,
+                batchName);
     }
 
     private static BaselineUploadResult doUpload(EyesRunner runner, String baseLineFilePath, String baselineName,
-            String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
+            String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl,
+            String batchName) {
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
         com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
@@ -69,6 +77,9 @@ public class Baseline {
         }
         if (null != serverUrl) {
             config.setServerUrl(serverUrl);
+        }
+        if (null != batchName && !batchName.isBlank()) {
+            config.setBatch(new BatchInfo(batchName));
         }
         eyesImages.setConfiguration(config);
 

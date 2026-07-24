@@ -72,7 +72,12 @@ APPLITOOLS_SERVER_URL=https://eyesapi.applitools.com
 APP_NAME=Applitools-Images
 FIGMA_CACHE_DIR=downloaded_images/figma-cache
 FIGMA_EXCEL_FILE=
+APPLITOOLS_BATCH_NAME=
 ```
+
+`APPLITOOLS_BATCH_NAME` groups every baseline uploaded in one `uploadFromFigma` run
+under a single named batch in the Applitools dashboard. Leave it blank to default to
+`Upload from Figma`.
 
 Any of these can instead be set as an **environment variable** of the same name
 (e.g. `export FIGMA_TOKEN=...`) — an env var always overrides the value in
