@@ -57,19 +57,27 @@ class and choosing **Run**.
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
   one TestNG invocation per non-`Skip` `Platform=Web` row. For each row it opens
-  `App URL / Screen Name` with Selenium, runs an Applitools Eyes comparison against
+  `App URL / Screen Name` with Selenium and submits an Applitools Eyes comparison against
   the `Baseline Env Name` baseline (full page if `Locator` is blank, otherwise just that
-  CSS/XPath-selected region), and writes `Comparison Batch URL` + `Validation Status` back
-  into the same file in place, plus a final pass/fail summary.
+  CSS/XPath-selected region).
   ```bash
   ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
   # or against a specific file:
   ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PfigmaExcel=path/to/file.xlsx
   ```
 
-Both test classes configure Eyes via the Visual Grid runner (`VisualGridRunner`), so a
-single local browser session fans out to every browser/viewport combination added in
-`config.addBrowser(...)` inside each test's `initialiseEyes(...)` method.
+  One `VisualGridRunner` and one `BatchInfo` are shared across every row for the whole
+  run — creating a new one per row would repeatedly start/stop the Ultrafast Grid's
+  background process and hang after the first row. Because results from a shared
+  runner are only available once every submitted check has finished, individual rows
+  just submit their check via `closeAsync()`; the actual pass/fail, `Comparison Batch
+  URL`, and `Validation Status` are collected once in `@AfterSuite` (matched back to
+  each row by test name), written to the Excel file, and the suite fails there if any
+  row had a visual difference.
+
+`WebFigmaTest` configures Eyes via its own per-test `VisualGridRunner` (it only ever
+runs one check, so that's fine); `BajajFinservWebTest` configures browsers/viewports
+via `config.addBrowser(...)` inside its shared `initialiseEyes(...)` method.
 
 ### Uploading a Figma design as the baseline
 

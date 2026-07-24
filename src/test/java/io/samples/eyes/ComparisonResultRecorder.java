@@ -2,6 +2,7 @@ package io.samples.eyes;
 
 import static io.samples.EyesResults.displayVisualValidationResults;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.applitools.eyes.TestResults;
@@ -20,18 +21,27 @@ public class ComparisonResultRecorder {
     private ComparisonResultRecorder() {
     }
 
-    public static boolean recordAndCheckPass(FigmaRow row, TestResultsSummary summary) {
-        AtomicBoolean isPass = new AtomicBoolean(true);
+    /**
+     * For a Visual Grid runner shared across many rows: call this once, after every row
+     * has submitted its check via closeAsync(), not per row - getAllTestResults() reports
+     * cumulatively for every test run on that runner, and results are matched back to
+     * their row by test name (the testName each row's eyes.open(...) used).
+     */
+    public static boolean recordAndCheckPass(Map<String, FigmaRow> rowsByTestName, TestResultsSummary summary) {
+        AtomicBoolean allPass = new AtomicBoolean(true);
         summary.forEach(testResultContainer -> {
             TestResults testResults = testResultContainer.getTestResults();
             System.out.printf("Test: %s%n%s%n", testResults.getName(), testResultContainer);
             displayVisualValidationResults(testResults);
-            applyResult(row, testResults);
+            FigmaRow row = rowsByTestName.get(testResults.getName());
+            if (null != row) {
+                applyResult(row, testResults);
+            }
             if (!isPassingStatus(testResults.getStatus())) {
-                isPass.set(false);
+                allPass.set(false);
             }
         });
-        return isPass.get();
+        return allPass.get();
     }
 
     public static boolean recordAndCheckPass(FigmaRow row, TestResults testResults) {

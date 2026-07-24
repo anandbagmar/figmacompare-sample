@@ -1,6 +1,8 @@
 package io.samples.web.selenium;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -19,6 +21,7 @@ import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.RectangleSize;
 import com.applitools.eyes.StdoutLogHandler;
+import com.applitools.eyes.TestResultsSummary;
 import com.applitools.eyes.selenium.BrowserType;
 import com.applitools.eyes.selenium.Configuration;
 import com.applitools.eyes.selenium.Eyes;
@@ -45,6 +48,11 @@ import io.samples.excel.FigmaRow;
  * This class is the template for any generic web comparison: unlike mobile, a single
  * data-driven test can handle every web row, since Selenium can navigate to any URL
  * directly (see BajajFinservAndroidTest for why mobile needs one test per app instead).
+ *
+ * One VisualGridRunner and one BatchInfo are shared for the whole run (creating one per
+ * row would repeatedly start/stop the Ultrafast Grid's background process and hang).
+ * Because of that, individual rows only submit their check via closeAsync() - actual
+ * results are collected once, in @AfterSuite, and matched back to each row by test name.
  */
 public class BajajFinservWebTest {
 
@@ -56,23 +64,45 @@ public class BajajFinservWebTest {
 
     private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
+    private static VisualGridRunner visualGridRunner;
+    private static BatchInfo batchInfo;
 
     private WebDriver driver;
 
     @BeforeSuite
     public static void beforeSuite() {
+        visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
+        visualGridRunner.setDontCloseBatches(true);
+        batchInfo = BatchSupport.createBatch(DEFAULT_APP_NAME, userName);
     }
 
     @AfterSuite
     public static void afterSuite() {
-        if (null == allRows || allRows.isEmpty()) {
-            return;
+        try {
+            if (null == allRows || allRows.isEmpty()) {
+                return;
+            }
+            Map<String, FigmaRow> rowsByTestName = allRows.stream()
+                    .filter(row -> !isBlank(row.testName) || !isBlank(row.appUrlOrScreenName))
+                    .collect(Collectors.toMap(
+                            row -> isBlank(row.testName) ? row.appUrlOrScreenName : row.testName,
+                            row -> row,
+                            (first, second) -> first));
+
+            TestResultsSummary summary = visualGridRunner.getAllTestResults(false);
+            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(rowsByTestName, summary);
+
+            ExcelHelper.writeRows(figmaExcelPath, allRows);
+            long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
+            System.out.println();
+            System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
+                    + figmaExcelPath);
+
+            Assert.assertTrue(isPass, "Visual differences found - see " + figmaExcelPath + " for details.");
+        } finally {
+            BatchSupport.closeBatch(batchInfo);
+            visualGridRunner.close();
         }
-        ExcelHelper.writeRows(figmaExcelPath, allRows);
-        long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
-        System.out.println();
-        System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
-                + figmaExcelPath);
     }
 
     @DataProvider(name = "webRows")
@@ -100,21 +130,14 @@ public class BajajFinservWebTest {
         }
     }
 
-    private VisualGridRunner initVisualGridRunner() {
-        VisualGridRunner visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
-        visualGridRunner.setDontCloseBatches(true);
-        return visualGridRunner;
-    }
-
-    private Eyes initialiseEyes(VisualGridRunner visualGridRunner, BatchInfo batch, String appName,
-            String baselineName, RectangleSize viewportSize) {
+    private Eyes initialiseEyes(String appName, String baselineName, RectangleSize viewportSize) {
         Eyes eyes = new Eyes(visualGridRunner);
         Configuration config = new Configuration();
         config.setHostOS(System.getProperty("os.name"));
         config.setAppName(appName);
         config.setBaselineEnvName(baselineName);
         config.setApiKey(APPLITOOLS_API_KEY);
-        config.setBatch(batch);
+        config.setBatch(batchInfo);
         config.setIsDisabled(Boolean.FALSE);
         config.setForceFullPageScreenshot(true);
         config.setStitchMode(StitchMode.CSS);
@@ -145,9 +168,7 @@ public class BajajFinservWebTest {
             viewportSize = DEFAULT_VIEWPORT;
         }
 
-        VisualGridRunner visualGridRunner = initVisualGridRunner();
-        BatchInfo batchInfo = BatchSupport.createBatch(appName, userName);
-        Eyes eyesSelenium = initialiseEyes(visualGridRunner, batchInfo, appName, baselineName, viewportSize);
+        Eyes eyesSelenium = initialiseEyes(appName, baselineName, viewportSize);
         try {
             driver.get(row.appUrlOrScreenName);
             eyesSelenium.open(driver, appName, testName, viewportSize);
@@ -157,16 +178,9 @@ public class BajajFinservWebTest {
                 eyesSelenium.check(testName, Target.region(parseLocator(row.locator)));
             }
             eyesSelenium.closeAsync();
-
-            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(row,
-                    visualGridRunner.getAllTestResults(false));
-            BatchSupport.closeBatch(batchInfo);
-            visualGridRunner.close();
-            Assert.assertTrue(isPass, "Visual differences found for: " + row.appUrlOrScreenName);
         } catch (RuntimeException ex) {
             row.validationStatus = "Failed";
             row.errorMessage = ex.getMessage();
-            BatchSupport.closeBatch(batchInfo);
             eyesSelenium.abortIfNotClosed();
             throw ex;
         }

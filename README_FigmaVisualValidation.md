@@ -86,8 +86,11 @@ plus a final pass/fail summary, the same pattern `uploadFromFigma` already uses.
 [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java):
 a TestNG test, data-driven from the shared Excel file, one invocation per
 `Platform=Web` row. Selenium opens `App URL / Screen Name` directly — no per-row
-code needed. Full page if `Locator` is blank, otherwise just that region.
-Run it with:
+code needed. Full page if `Locator` is blank, otherwise just that region. One
+`VisualGridRunner`/`BatchInfo` pair is shared for the whole run, so individual rows
+just submit their check; results are collected once at the end (`@AfterSuite`),
+matched back to each row by test name, written to the Excel file, and the suite
+fails there if anything mismatched. Run it with:
 ```bash
 ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
 # or against a specific file:
