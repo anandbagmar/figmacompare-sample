@@ -20,9 +20,11 @@ public class FigmaClient {
     private static final Gson GSON = new Gson();
     // Figma renders the export server-side on first request, which can take well over
     // OkHttp's 10s default read timeout for large/complex frames.
+    private static final int MAX_ATTEMPTS = 3;
+    private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(2);
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(30))
-            .readTimeout(Duration.ofSeconds(60))
+            .readTimeout(Duration.ofSeconds(120))
             .writeTimeout(Duration.ofSeconds(30))
             .build();
     private final String figmaToken;
@@ -84,7 +86,7 @@ public class FigmaClient {
                 .url(url)
                 .header("X-Figma-Token", figmaToken)
                 .build();
-        try (Response response = httpClient.newCall(request).execute()) {
+        try (Response response = executeWithRetry(request)) {
             if (!response.isSuccessful()) {
                 throw new RuntimeException("Figma API call failed [" + response.code() + "]: " + url);
             }
@@ -96,7 +98,7 @@ public class FigmaClient {
 
     private void downloadTo(String imageUrl, File destination) {
         Request request = new Request.Builder().url(imageUrl).build();
-        try (Response response = httpClient.newCall(request).execute()) {
+        try (Response response = executeWithRetry(request)) {
             if (!response.isSuccessful()) {
                 throw new RuntimeException("Failed to download Figma image [" + response.code() + "]: " + imageUrl);
             }
@@ -107,6 +109,39 @@ public class FigmaClient {
             System.out.println("Downloaded Figma image to cache: " + destination.getAbsolutePath());
         } catch (IOException ex) {
             throw new RuntimeException("Failed to download Figma image: " + imageUrl, ex);
+        }
+    }
+
+    /**
+     * Retries only on network-level failures (timeouts, connection resets) - not on HTTP
+     * error responses, which retrying won't fix. Uses exponential backoff between attempts.
+     */
+    private Response executeWithRetry(Request request) throws IOException {
+        IOException lastFailure = null;
+        Duration delay = INITIAL_RETRY_DELAY;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                return httpClient.newCall(request).execute();
+            } catch (IOException ex) {
+                lastFailure = ex;
+                if (attempt == MAX_ATTEMPTS) {
+                    break;
+                }
+                System.out.println("Request to " + request.url() + " failed (attempt " + attempt + "/"
+                        + MAX_ATTEMPTS + "): " + ex + ". Retrying in " + delay.getSeconds() + "s...");
+                sleep(delay);
+                delay = delay.multipliedBy(2);
+            }
+        }
+        throw lastFailure;
+    }
+
+    private static void sleep(Duration duration) {
+        try {
+            Thread.sleep(duration.toMillis());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting to retry Figma request", ex);
         }
     }
 }
