@@ -2,7 +2,9 @@ package io.samples;
 
 import java.util.List;
 
+import com.applitools.eyes.EyesRunner;
 import com.applitools.eyes.RectangleSize;
+import com.applitools.eyes.images.ImageRunner;
 
 import io.samples.config.AppConfig;
 import io.samples.excel.ExcelHelper;
@@ -60,8 +62,16 @@ public class UploadFromFigma {
         System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath + " ("
                 + (allRows.size() - toProcess.size()) + " skipped)");
 
-        for (FigmaRow row : toProcess) {
-            processRow(row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir, forceRefresh);
+        // One EyesRunner (and its background "universal core" process) shared across the
+        // whole batch, instead of starting/stopping it per row.
+        EyesRunner runner = new ImageRunner();
+        try {
+            for (FigmaRow row : toProcess) {
+                processRow(runner, row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
+                        forceRefresh);
+            }
+        } finally {
+            runner.close();
         }
 
         ExcelHelper.writeRows(figmaExcelPath, allRows);
@@ -72,8 +82,8 @@ public class UploadFromFigma {
                 + figmaExcelPath);
     }
 
-    private static void processRow(FigmaRow row, FigmaClient figmaClient, String appName, String applitoolsApiKey,
-            String applitoolsServerUrl, String cacheDir, boolean forceRefresh) {
+    private static void processRow(EyesRunner runner, FigmaRow row, FigmaClient figmaClient, String appName,
+            String applitoolsApiKey, String applitoolsServerUrl, String cacheDir, boolean forceRefresh) {
         System.out.println("Processing: " + row.figmaUrl);
         row.appName = appName;
         try {
@@ -92,7 +102,7 @@ public class UploadFromFigma {
             java.io.File imageFile = figmaClient.getCachedImage(row.figmaUrl, format, scale, cacheDir, forceRefresh);
 
             BaselineUploadResult result = Baseline.uploadImageAndSetAsBaseline(
-                    imageFile.getAbsolutePath(), row.baselineEnvName, appName, row.testName, viewportSize,
+                    runner, imageFile.getAbsolutePath(), row.baselineEnvName, appName, row.testName, viewportSize,
                     applitoolsApiKey, applitoolsServerUrl);
 
             row.viewport = result.getViewportSize().getWidth() + "x" + result.getViewportSize().getHeight();

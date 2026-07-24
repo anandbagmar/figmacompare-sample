@@ -15,11 +15,35 @@ public class Baseline {
 
     public static void uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName, String appName,
             String testName, RectangleSize viewportSize) {
-        doUpload(baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
+        EyesRunner runner = new ImageRunner();
+        try {
+            doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, null, null);
+        } finally {
+            runner.close();
+        }
     }
 
     public static BaselineUploadResult uploadImageAndSetAsBaseline(String baseLineFilePath, String baselineName,
             String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
+        EyesRunner runner = new ImageRunner();
+        try {
+            return uploadImageAndSetAsBaseline(runner, baseLineFilePath, baselineName, appName, testName,
+                    viewportSize, apiKey, serverUrl);
+        } finally {
+            runner.close();
+        }
+    }
+
+    /**
+     * Same as the other overload, but reuses a caller-supplied, caller-owned EyesRunner
+     * instead of creating (and closing) a new one per call. Applitools' EyesRunner starts
+     * a background "universal core" process on creation - reuse one runner across many
+     * uploads (e.g. a batch loop) instead of repeatedly starting/stopping it per image.
+     * The caller is responsible for calling runner.close() once, after all uploads.
+     */
+    public static BaselineUploadResult uploadImageAndSetAsBaseline(EyesRunner runner, String baseLineFilePath,
+            String baselineName, String appName, String testName, RectangleSize viewportSize, String apiKey,
+            String serverUrl) {
         if (null == apiKey || apiKey.isBlank()) {
             throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
                     + "Set it in config.properties or as an environment variable.");
@@ -28,12 +52,11 @@ public class Baseline {
             throw new IllegalStateException("APPLITOOLS_SERVER_URL is required but was null/blank. "
                     + "Set it in config.properties or as an environment variable.");
         }
-        return doUpload(baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl);
+        return doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl);
     }
 
-    private static BaselineUploadResult doUpload(String baseLineFilePath, String baselineName, String appName,
-            String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
-        EyesRunner runner = new ImageRunner();
+    private static BaselineUploadResult doUpload(EyesRunner runner, String baseLineFilePath, String baselineName,
+            String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl) {
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
         com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
@@ -72,7 +95,6 @@ public class Baseline {
             return new BaselineUploadResult(null, viewportSize);
         } finally {
             eyesImages.abortIfNotClosed();
-            runner.close();
         }
     }
 }
