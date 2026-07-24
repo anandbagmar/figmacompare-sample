@@ -38,18 +38,21 @@ public class Baseline {
     /**
      * Same as the other overload, but reuses a caller-supplied, caller-owned EyesRunner
      * instead of creating (and closing) a new one per call, and lets the caller pin an
-     * explicit batch name. Applitools' EyesRunner starts a background "universal core"
-     * process on creation - reuse one runner across many uploads (e.g. a batch loop)
-     * instead of repeatedly starting/stopping it per image. Without an explicit batch
-     * name, the SDK lazily creates a default batch on the first eyes.open() call and
-     * reuses it for every later test on the same runner - so when sharing a runner across
-     * a loop, always pass a real batchName here, or every row ends up sharing whichever
-     * batch got auto-created for the first row. The caller is responsible for calling
-     * runner.close() once, after all uploads.
+     * explicit, shared BatchInfo. Applitools' EyesRunner starts a background "universal
+     * core" process on creation - reuse one runner across many uploads (e.g. a batch
+     * loop) instead of repeatedly starting/stopping it per image. Pass the *same*
+     * BatchInfo instance to every call in the loop - each BatchInfo has its own batch ID,
+     * so constructing a new one per call would still group uploads into separate batches
+     * even if they all share the same name. Without an explicit batch, the SDK lazily
+     * creates a default one on the first eyes.open() call and reuses it for every later
+     * test on the same runner - so when sharing a runner across a loop, always pass a
+     * real batch here, or every row ends up sharing whichever batch got auto-created for
+     * the first row. The caller is responsible for calling runner.close() once, after all
+     * uploads.
      */
     public static BaselineUploadResult uploadImageAndSetAsBaseline(EyesRunner runner, String baseLineFilePath,
             String baselineName, String appName, String testName, RectangleSize viewportSize, String apiKey,
-            String serverUrl, String batchName) {
+            String serverUrl, BatchInfo batch) {
         if (null == apiKey || apiKey.isBlank()) {
             throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
                     + "Set it in config.properties or as an environment variable.");
@@ -59,12 +62,12 @@ public class Baseline {
                     + "Set it in config.properties or as an environment variable.");
         }
         return doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl,
-                batchName);
+                batch);
     }
 
     private static BaselineUploadResult doUpload(EyesRunner runner, String baseLineFilePath, String baselineName,
             String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl,
-            String batchName) {
+            BatchInfo batch) {
         com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
         eyesImages.setBaselineEnvName(baselineName);
         com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
@@ -78,8 +81,8 @@ public class Baseline {
         if (null != serverUrl) {
             config.setServerUrl(serverUrl);
         }
-        if (null != batchName && !batchName.isBlank()) {
-            config.setBatch(new BatchInfo(batchName));
+        if (null != batch) {
+            config.setBatch(batch);
         }
         eyesImages.setConfiguration(config);
 

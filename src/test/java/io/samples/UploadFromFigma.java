@@ -2,11 +2,13 @@ package io.samples;
 
 import java.util.List;
 
+import com.applitools.eyes.BatchInfo;
 import com.applitools.eyes.EyesRunner;
 import com.applitools.eyes.RectangleSize;
 import com.applitools.eyes.images.ImageRunner;
 
 import io.samples.config.AppConfig;
+import io.samples.eyes.BatchSupport;
 import io.samples.excel.ExcelHelper;
 import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
@@ -63,15 +65,18 @@ public class UploadFromFigma {
         System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath + " ("
                 + (allRows.size() - toProcess.size()) + " skipped)");
 
-        // One EyesRunner (and its background "universal core" process) shared across the
-        // whole batch, instead of starting/stopping it per row.
+        // One EyesRunner (and its background "universal core" process), and one BatchInfo,
+        // shared across the whole run - so every upload groups into a single batch instead
+        // of starting/stopping the runner and creating a new batch ID per row.
         EyesRunner runner = new ImageRunner();
+        BatchInfo batch = new BatchInfo(batchName);
         try {
             for (FigmaRow row : toProcess) {
                 processRow(runner, row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
-                        forceRefresh, batchName);
+                        forceRefresh, batch);
             }
         } finally {
+            BatchSupport.closeBatch(batch);
             runner.close();
         }
 
@@ -85,7 +90,7 @@ public class UploadFromFigma {
 
     private static void processRow(EyesRunner runner, FigmaRow row, FigmaClient figmaClient, String appName,
             String applitoolsApiKey, String applitoolsServerUrl, String cacheDir, boolean forceRefresh,
-            String batchName) {
+            BatchInfo batch) {
         System.out.println("Processing: " + row.figmaUrl);
         row.appName = appName;
         try {
@@ -105,7 +110,7 @@ public class UploadFromFigma {
 
             BaselineUploadResult result = Baseline.uploadImageAndSetAsBaseline(
                     runner, imageFile.getAbsolutePath(), row.baselineEnvName, appName, row.testName, viewportSize,
-                    applitoolsApiKey, applitoolsServerUrl, batchName);
+                    applitoolsApiKey, applitoolsServerUrl, batch);
 
             row.viewport = result.getViewportSize().getWidth() + "x" + result.getViewportSize().getHeight();
             if (null != result.getTestResults()) {
