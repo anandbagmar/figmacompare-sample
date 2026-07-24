@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -17,7 +18,13 @@ public class FigmaClient {
 
     private static final String FIGMA_API_BASE = "https://api.figma.com/v1";
     private static final Gson GSON = new Gson();
-    private final OkHttpClient httpClient = new OkHttpClient();
+    // Figma renders the export server-side on first request, which can take well over
+    // OkHttp's 10s default read timeout for large/complex frames.
+    private final OkHttpClient httpClient = new OkHttpClient.Builder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .readTimeout(Duration.ofSeconds(60))
+            .writeTimeout(Duration.ofSeconds(30))
+            .build();
     private final String figmaToken;
 
     public FigmaClient(String figmaToken) {
