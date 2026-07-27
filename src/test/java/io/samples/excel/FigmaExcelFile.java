@@ -1,6 +1,7 @@
 package io.samples.excel;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,5 +53,34 @@ public class FigmaExcelFile {
 
     public static boolean isSkipped(FigmaRow row) {
         return null != row.skip && SKIP_VALUES.contains(row.skip.trim().toLowerCase());
+    }
+
+    /**
+     * Groups rows into scenario steps: consecutive rows sharing the same non-blank
+     * Scenario Name become one group (one multi-step Applitools test, in sheet order); a
+     * row with a blank Scenario Name is always its own group of one (a standalone test).
+     * Does not merge non-adjacent rows sharing a name - see FigmaValidation for the check
+     * that flags that as an error instead of silently regrouping.
+     */
+    public static List<List<FigmaRow>> groupContiguous(List<FigmaRow> rows) {
+        List<List<FigmaRow>> chunks = new ArrayList<>();
+        List<FigmaRow> current = null;
+        String currentName = null;
+        for (FigmaRow row : rows) {
+            String name = scenarioNameOf(row);
+            if (null != name && null != currentName && currentName.equals(name)) {
+                current.add(row);
+            } else {
+                current = new ArrayList<>();
+                current.add(row);
+                chunks.add(current);
+            }
+            currentName = name;
+        }
+        return chunks;
+    }
+
+    public static String scenarioNameOf(FigmaRow row) {
+        return (null == row.scenarioName || row.scenarioName.isBlank()) ? null : row.scenarioName.trim();
     }
 }

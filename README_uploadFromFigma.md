@@ -104,8 +104,9 @@ others only to the comparison step, and it's fine to leave those blank for now.
 | `Figma URL` | **Yes** | A Figma share link to a specific frame/component, e.g. right-click a frame in Figma → *Copy link to selection*. Must contain a `node-id`. |
 | `Platform` | No (used later by `compareWithFigma`) | `Web`, `Android`, or `iOS`. Not used by this program, but keep it here so the same row can be reused later. |
 | `App URL / Screen Name` | No (used later by `compareWithFigma`) | For `Web`: the UAT/production URL. For `Android`/`iOS`: a screen name/identifier. Not used by this program, but keep it here so the same row can be reused later. |
-| `Test Name` | No | Overrides the auto-derived test name. If left blank, it's derived from the Figma node's name (sanitized to letters/digits/`-`/`_`). |
-| `Baseline Env Name` | No | Overrides the Applitools baseline environment name. If left blank, it's derived as `{testName}-baseline`. Provide this if you need a specific/existing baseline env name instead of the auto-derived one. |
+| `Scenario Name` | No | Shared by **consecutive** rows to upload them as the steps of one multi-step Applitools test instead of one test per row (matches how the Applitools Figma plugin exports a multi-frame scenario). Leave blank for a standalone row. |
+| `Test Name` | No | Overrides the auto-derived test/step name. If left blank, it's derived from the Figma node's name (sanitized to letters/digits/`-`/`_`). For a scenario, this is the step's name within the shared test, not the whole test's name. |
+| `Baseline Env Name` | No | Overrides the Applitools baseline environment name. If left blank, it's derived as `{testName}-baseline` (standalone) or `{scenarioName}-baseline` (scenario). For a scenario, only needs to be set on one row — it's shared across the whole group, and re-checked for consistency across the group before anything runs. |
 | `Viewport` | No | Overrides the viewport size, format `WIDTHxHEIGHT` (e.g. `1280x1024`). If left blank, it's derived from the downloaded image's pixel dimensions. |
 | `Scale` | No | Figma export scale, e.g. `1`, `2`, `3`. Defaults to `1` if blank. |
 | `Format` | No | Figma export format: `png`, `jpg`, `svg`, `pdf`. Defaults to `png` if blank. |

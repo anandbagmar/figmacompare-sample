@@ -1,6 +1,7 @@
 package io.samples.appium.android;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import io.samples.eyes.ComparisonResultRecorder;
 import io.samples.excel.ExcelHelper;
 import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
+import io.samples.excel.FigmaValidation;
 
 /**
  * Mobile (Android) path of the compareWithFigma step described in
@@ -45,6 +47,14 @@ import io.samples.excel.FigmaRow;
  * app), and a data-driven test that looks up and runs the matching flow for each
  * "Platform=Android" row, then does the same Applitools comparison + Excel write-back (in
  * place) as the web path. Rows with "Skip" set are left untouched and not processed.
+ *
+ * Rows sharing the same non-blank "Scenario Name" (consecutively, in sheet order) run as
+ * one multi-step test in a single continuous app session (no relaunch between steps): one
+ * eyes.open(), each row's screen flow run in turn followed by a checkWindow(), one
+ * close(). A standalone row (blank Scenario Name) is just a scenario of one step. Every
+ * SCREEN_FLOWS entry must be self-contained - able to reach its target screen regardless
+ * of what ran before it - since the same entry may run standalone (fresh launch) or as any
+ * step of any scenario.
  */
 public class BajajFinservAndroidTest {
 
@@ -59,7 +69,9 @@ public class BajajFinservAndroidTest {
     /**
      * One entry per distinct "App URL / Screen Name" value used for this app in the
      * shared Figma Excel file. Add a new entry here whenever a new screen needs
-     * comparing; the flow just has to leave the app on that screen when it returns.
+     * comparing. Each flow must independently reach its target screen - e.g. reset to
+     * Home first if needed - since it may run standalone (fresh launch) or as any step of
+     * any scenario, never assuming a specific prior screen.
      */
     private static final Map<String, Consumer<AppiumDriver>> SCREEN_FLOWS = new HashMap<>();
     static {
@@ -97,15 +109,20 @@ public class BajajFinservAndroidTest {
         }
     }
 
-    @DataProvider(name = "androidRows")
-    public static Object[][] androidRows() {
+    @DataProvider(name = "androidGroups")
+    public static Object[][] androidGroups() {
         figmaExcelPath = FigmaExcelFile.resolvePath(System.getProperty("figmaExcel"));
         allRows = ExcelHelper.readRows(figmaExcelPath);
-        List<FigmaRow> androidRows = FigmaExcelFile.filterByPlatform(allRows, "android");
 
-        Object[][] data = new Object[androidRows.size()][1];
-        for (int i = 0; i < androidRows.size(); i++) {
-            data[i][0] = androidRows.get(i);
+        List<FigmaRow> androidRows = FigmaExcelFile.filterByPlatform(allRows, "android");
+        List<String> errors = new ArrayList<>(FigmaValidation.validate(allRows));
+        errors.addAll(FigmaValidation.validateScreenFlows(androidRows, SCREEN_FLOWS.keySet()));
+        FigmaValidation.throwIfAny(errors);
+
+        List<List<FigmaRow>> androidGroups = FigmaExcelFile.groupContiguous(androidRows);
+        Object[][] data = new Object[androidGroups.size()][1];
+        for (int i = 0; i < androidGroups.size(); i++) {
+            data[i][0] = androidGroups.get(i);
         }
         return data;
     }
@@ -148,34 +165,39 @@ public class BajajFinservAndroidTest {
         eyes.open(driver, APP_NAME, testName);
     }
 
-    @Test(dataProvider = "androidRows")
-    void compareAndroidRowWithFigmaBaseline(FigmaRow row) {
-        String testName = isBlank(row.testName) ? row.appUrlOrScreenName : row.testName;
-        String baselineName = isBlank(row.baselineEnvName) ? testName + "-baseline" : row.baselineEnvName;
+    @Test(dataProvider = "androidGroups")
+    void compareAndroidGroupWithFigmaBaseline(List<FigmaRow> group) {
+        FigmaRow firstRow = group.get(0);
+        String scenarioName = FigmaExcelFile.scenarioNameOf(firstRow);
+        String scenarioTestName = null != scenarioName ? scenarioName : resolveStepName(firstRow);
+        String baselineName = isBlank(firstRow.baselineEnvName)
+                ? scenarioTestName + "-baseline"
+                : firstRow.baselineEnvName;
 
-        Consumer<AppiumDriver> screenFlow = SCREEN_FLOWS.get(row.appUrlOrScreenName);
-        if (null == screenFlow) {
-            row.validationStatus = "Failed";
-            row.errorMessage = "No screen flow registered for \"" + row.appUrlOrScreenName + "\". Add one to "
-                    + "BajajFinservAndroidTest.SCREEN_FLOWS.";
-            Assert.fail(row.errorMessage);
-            return;
-        }
-
-        configureEyes(testName, baselineName);
+        configureEyes(scenarioTestName, baselineName);
         try {
-            screenFlow.accept(driver);
-            eyes.checkWindow(testName);
+            for (FigmaRow row : group) {
+                String stepName = resolveStepName(row);
+                Consumer<AppiumDriver> screenFlow = SCREEN_FLOWS.get(row.appUrlOrScreenName);
+                screenFlow.accept(driver);
+                eyes.checkWindow(stepName);
+            }
             TestResults testResults = eyes.close(false);
 
-            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(row, testResults);
-            Assert.assertTrue(isPass, "Visual differences found for: " + row.appUrlOrScreenName);
+            boolean isPass = ComparisonResultRecorder.recordAndCheckPass(group, testResults);
+            Assert.assertTrue(isPass, "Visual differences found for scenario: " + scenarioTestName);
         } catch (RuntimeException ex) {
-            row.validationStatus = "Failed";
-            row.errorMessage = ex.getMessage();
+            for (FigmaRow row : group) {
+                row.validationStatus = "Failed";
+                row.errorMessage = ex.getMessage();
+            }
             eyes.abortIfNotClosed();
             throw ex;
         }
+    }
+
+    private static String resolveStepName(FigmaRow row) {
+        return isBlank(row.testName) ? row.appUrlOrScreenName : row.testName;
     }
 
     private static boolean isBlank(String value) {

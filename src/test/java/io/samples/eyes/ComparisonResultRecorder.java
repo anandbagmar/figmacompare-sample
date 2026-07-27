@@ -2,6 +2,7 @@ package io.samples.eyes;
 
 import static io.samples.EyesResults.displayVisualValidationResults;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -12,30 +13,38 @@ import com.applitools.eyes.TestResultsSummary;
 import io.samples.excel.FigmaRow;
 
 /**
- * Records an Applitools comparison result onto a FigmaRow (Comparison Batch URL,
- * Validation Status) and reports whether it passed, for both the Visual Grid (Selenium/web,
- * one test can fan out into several results) and native (Appium/mobile, a single result) cases.
+ * Records an Applitools comparison result onto every FigmaRow in a scenario group
+ * (Comparison Batch URL, Validation Status) and reports whether it passed. A standalone
+ * row is just a group of one, so there is a single code path for both cases.
  */
 public class ComparisonResultRecorder {
 
     private ComparisonResultRecorder() {
     }
 
+    /** Native/synchronous single result (e.g. Appium), applied to every row of one group. */
+    public static boolean recordAndCheckPass(List<FigmaRow> rows, TestResults testResults) {
+        System.out.printf("Test: %s%n%s%n", testResults.getName(), testResults);
+        displayVisualValidationResults(testResults);
+        applyResult(rows, testResults);
+        return isPassingStatus(testResults.getStatus());
+    }
+
     /**
-     * For a Visual Grid runner shared across many rows: call this once, after every row
-     * has submitted its check via closeAsync(), not per row - getAllTestResults() reports
-     * cumulatively for every test run on that runner, and results are matched back to
-     * their row by test name (the testName each row's eyes.open(...) used).
+     * For a Visual Grid runner shared across many groups: call this once, after every
+     * group has submitted its checks via closeAsync() - getAllTestResults() reports
+     * cumulatively for every test run on that runner. Results are matched back to their
+     * group's rows by test name (the scenario/test name each group's eyes.open used).
      */
-    public static boolean recordAndCheckPass(Map<String, FigmaRow> rowsByTestName, TestResultsSummary summary) {
+    public static boolean recordAndCheckPass(Map<String, List<FigmaRow>> rowsByTestName, TestResultsSummary summary) {
         AtomicBoolean allPass = new AtomicBoolean(true);
         summary.forEach(testResultContainer -> {
             TestResults testResults = testResultContainer.getTestResults();
             System.out.printf("Test: %s%n%s%n", testResults.getName(), testResultContainer);
             displayVisualValidationResults(testResults);
-            FigmaRow row = rowsByTestName.get(testResults.getName());
-            if (null != row) {
-                applyResult(row, testResults);
+            List<FigmaRow> rows = rowsByTestName.get(testResults.getName());
+            if (null != rows) {
+                applyResult(rows, testResults);
             }
             if (!isPassingStatus(testResults.getStatus())) {
                 allPass.set(false);
@@ -44,16 +53,11 @@ public class ComparisonResultRecorder {
         return allPass.get();
     }
 
-    public static boolean recordAndCheckPass(FigmaRow row, TestResults testResults) {
-        System.out.printf("Test: %s%n%s%n", testResults.getName(), testResults);
-        displayVisualValidationResults(testResults);
-        applyResult(row, testResults);
-        return isPassingStatus(testResults.getStatus());
-    }
-
-    private static void applyResult(FigmaRow row, TestResults testResults) {
-        row.comparisonBatchUrl = testResults.getUrl();
-        row.validationStatus = testResults.getStatus().toString();
+    private static void applyResult(List<FigmaRow> rows, TestResults testResults) {
+        for (FigmaRow row : rows) {
+            row.comparisonBatchUrl = testResults.getUrl();
+            row.validationStatus = testResults.getStatus().toString();
+        }
     }
 
     private static boolean isPassingStatus(TestResultsStatus status) {

@@ -1,5 +1,7 @@
 package io.samples;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.applitools.eyes.BatchInfo;
@@ -12,6 +14,7 @@ import io.samples.eyes.BatchSupport;
 import io.samples.excel.ExcelHelper;
 import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
+import io.samples.excel.FigmaValidation;
 import io.samples.figma.FigmaClient;
 
 /**
@@ -19,10 +22,15 @@ import io.samples.figma.FigmaClient;
  * image to Applitools Eyes as a baseline, and writes the results back to the same file.
  *
  * Expected columns (header row, any order): Figma URL, Platform, App URL / Screen Name,
- * Test Name, Baseline Env Name, Viewport, Scale, Format, Skip. Only "Figma URL" is
- * required per row; the rest are optional. "Baseline Env Name" is auto-derived as
- * "{testName}-baseline" if left blank, or used as-is if provided. Rows with "Skip" set to
+ * Scenario Name, Test Name, Baseline Env Name, Viewport, Scale, Format, Skip. Only
+ * "Figma URL" is required per row; the rest are optional. "Baseline Env Name" is
+ * auto-derived if left blank, or used as-is if provided. Rows with "Skip" set to
  * true/t/yes/y/skip (case-insensitive) are left untouched and not processed.
+ *
+ * Rows sharing the same non-blank "Scenario Name" (consecutively, in sheet order) are
+ * uploaded as one multi-step Applitools test - one eyes.open(), one check() per row/step,
+ * one close() - matching how the Applitools Figma plugin itself uploads a multi-frame
+ * scenario. A standalone row (blank Scenario Name) is just a scenario of one step.
  *
  * Usage: UploadFromFigma [figmaExcelPath] [forceRefresh: true|false]
  * figmaExcelPath, if omitted, falls back to -DfigmaExcel, then FIGMA_EXCEL_FILE in
@@ -59,11 +67,14 @@ public class UploadFromFigma {
                     + " and fill in APPLITOOLS_SERVER_URL (or set it as an environment variable).");
         }
 
-        FigmaClient figmaClient = new FigmaClient(figmaToken);
         List<FigmaRow> allRows = ExcelHelper.readRows(figmaExcelPath);
+        FigmaValidation.throwIfAny(FigmaValidation.validate(allRows));
+
+        FigmaClient figmaClient = new FigmaClient(figmaToken);
         List<FigmaRow> toProcess = FigmaExcelFile.excludeSkipped(allRows);
+        List<List<FigmaRow>> groups = FigmaExcelFile.groupContiguous(toProcess);
         System.out.println("Loaded " + allRows.size() + " row(s) from " + figmaExcelPath + " ("
-                + (allRows.size() - toProcess.size()) + " skipped)");
+                + (allRows.size() - toProcess.size()) + " skipped, " + groups.size() + " test(s) to upload)");
 
         // One EyesRunner (and its background "universal core" process), and one BatchInfo,
         // shared across the whole run - so every upload groups into a single batch instead
@@ -71,8 +82,8 @@ public class UploadFromFigma {
         EyesRunner runner = new ImageRunner();
         BatchInfo batch = new BatchInfo(batchName);
         try {
-            for (FigmaRow row : toProcess) {
-                processRow(runner, row, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
+            for (List<FigmaRow> group : groups) {
+                processGroup(runner, group, figmaClient, appName, applitoolsApiKey, applitoolsServerUrl, cacheDir,
                         forceRefresh, batch);
             }
         } finally {
@@ -84,45 +95,59 @@ public class UploadFromFigma {
 
         long succeeded = toProcess.stream().filter(r -> "Success".equals(r.status)).count();
         System.out.println();
-        System.out.println(succeeded + " of " + toProcess.size() + " succeeded. Results written to "
+        System.out.println(succeeded + " of " + toProcess.size() + " row(s) succeeded. Results written to "
                 + figmaExcelPath);
     }
 
-    private static void processRow(EyesRunner runner, FigmaRow row, FigmaClient figmaClient, String appName,
-            String applitoolsApiKey, String applitoolsServerUrl, String cacheDir, boolean forceRefresh,
-            BatchInfo batch) {
-        System.out.println("Processing: " + row.figmaUrl);
-        row.appName = appName;
+    private static void processGroup(EyesRunner runner, List<FigmaRow> group, FigmaClient figmaClient,
+            String appName, String applitoolsApiKey, String applitoolsServerUrl, String cacheDir,
+            boolean forceRefresh, BatchInfo batch) {
+        FigmaRow firstRow = group.get(0);
+        String scenarioName = FigmaExcelFile.scenarioNameOf(firstRow);
+        boolean isScenario = null != scenarioName;
+        System.out.println(isScenario
+                ? "Processing scenario \"" + scenarioName + "\" (" + group.size() + " step(s))"
+                : "Processing: " + firstRow.figmaUrl);
         try {
-            String scale = isBlank(row.scale) ? DEFAULT_SCALE : row.scale;
-            String format = isBlank(row.format) ? DEFAULT_FORMAT : row.format;
-
-            if (isBlank(row.testName)) {
-                row.testName = sanitizeTestName(figmaClient.fetchNodeName(row.figmaUrl));
+            List<Baseline.ScenarioStep> steps = new ArrayList<>();
+            for (FigmaRow row : group) {
+                row.appName = appName;
+                String scale = isBlank(row.scale) ? DEFAULT_SCALE : row.scale;
+                String format = isBlank(row.format) ? DEFAULT_FORMAT : row.format;
+                if (isBlank(row.testName)) {
+                    row.testName = sanitizeTestName(figmaClient.fetchNodeName(row.figmaUrl));
+                }
+                File imageFile = figmaClient.getCachedImage(row.figmaUrl, format, scale, cacheDir, forceRefresh);
+                steps.add(new Baseline.ScenarioStep(row.testName, imageFile.getAbsolutePath()));
             }
-            if (isBlank(row.baselineEnvName)) {
-                row.baselineEnvName = row.testName + "-baseline";
-            }
 
-            RectangleSize viewportSize = ExcelHelper.parseViewport(row.viewport);
+            String scenarioTestName = isScenario ? scenarioName : firstRow.testName;
+            String baselineEnvName = isBlank(firstRow.baselineEnvName)
+                    ? scenarioTestName + "-baseline"
+                    : firstRow.baselineEnvName;
+            RectangleSize viewportSize = ExcelHelper.parseViewport(firstRow.viewport);
 
-            java.io.File imageFile = figmaClient.getCachedImage(row.figmaUrl, format, scale, cacheDir, forceRefresh);
+            BaselineUploadResult result = Baseline.uploadScenarioAndSetAsBaseline(runner, appName, scenarioTestName,
+                    baselineEnvName, viewportSize, applitoolsApiKey, applitoolsServerUrl, batch, steps);
 
-            BaselineUploadResult result = Baseline.uploadImageAndSetAsBaseline(
-                    runner, imageFile.getAbsolutePath(), row.baselineEnvName, appName, row.testName, viewportSize,
-                    applitoolsApiKey, applitoolsServerUrl, batch);
-
-            row.viewport = result.getViewportSize().getWidth() + "x" + result.getViewportSize().getHeight();
-            if (null != result.getTestResults()) {
-                row.baselineBatchUrl = result.getTestResults().getUrl();
-                row.status = "Success";
-            } else {
-                row.status = "Failed";
-                row.errorMessage = "See console/log output for details";
+            String resolvedViewport = result.getViewportSize().getWidth() + "x"
+                    + result.getViewportSize().getHeight();
+            for (FigmaRow row : group) {
+                row.baselineEnvName = baselineEnvName;
+                row.viewport = resolvedViewport;
+                if (null != result.getTestResults()) {
+                    row.baselineBatchUrl = result.getTestResults().getUrl();
+                    row.status = "Success";
+                } else {
+                    row.status = "Failed";
+                    row.errorMessage = "See console/log output for details";
+                }
             }
         } catch (Exception ex) {
-            row.status = "Failed";
-            row.errorMessage = ex.getMessage();
+            for (FigmaRow row : group) {
+                row.status = "Failed";
+                row.errorMessage = ex.getMessage();
+            }
             System.out.println(ex);
             ex.printStackTrace();
         }

@@ -76,13 +76,18 @@ class and choosing **Run**.
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
   the same shared Figma Excel file as `BajajFinservWebTest` (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
-  one invocation per non-`Skip` `Platform=Android` row. Unlike web, there's no generic way
-  to navigate a native app to an arbitrary screen, so this class owns a small
-  `SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name` value to a short
-  Appium method that leaves the app on that screen — add an entry here for every new
-  screen you want to validate. It then runs an Applitools Eyes full-page comparison
-  against the `Baseline Env Name` baseline, and writes `Comparison Batch URL` +
-  `Validation Status` back into the same file in place, same as the web path.
+  one invocation per group of non-`Skip` `Platform=Android` rows — a group is either one
+  standalone row, or several consecutive rows sharing the same `Scenario Name`. Unlike
+  web, there's no generic way to navigate a native app to an arbitrary screen, so this
+  class owns a small `SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name`
+  value to a short Appium method that leaves the app on that screen — add an entry here
+  for every new screen you want to validate. For a scenario, each row/step's flow runs in
+  turn within one continuous app session (no relaunch between steps), so **every flow must
+  be self-contained** — able to reach its target screen regardless of what ran before it -
+  since the same entry may run standalone (fresh launch) or as any step of any scenario.
+  It then runs an Applitools Eyes full-page comparison against the group's
+  `Baseline Env Name` baseline, and writes `Comparison Batch URL` + `Validation Status`
+  back into the same file in place, same as the web path.
   ```bash
   ./gradlew compareAndroidWithFigma
   ```
@@ -96,7 +101,8 @@ class and choosing **Run**.
   [AndroidDriverFactory](../src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
   [BatchSupport](../src/test/java/io/samples/eyes/BatchSupport.java),
   [ComparisonResultRecorder](../src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
-  and [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java) utilities —
+  [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java), and
+  [FigmaValidation](../src/test/java/io/samples/excel/FigmaValidation.java) utilities —
   only the screen flows and Eyes configuration specifics need to be app-specific.
 
 ### iOS

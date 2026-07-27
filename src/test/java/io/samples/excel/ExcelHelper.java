@@ -24,6 +24,7 @@ public class ExcelHelper {
     private static final String COL_FIGMA_URL = "Figma URL";
     private static final String COL_PLATFORM = "Platform";
     private static final String COL_APP_URL_OR_SCREEN_NAME = "App URL / Screen Name";
+    private static final String COL_SCENARIO_NAME = "Scenario Name";
     private static final String COL_TEST_NAME = "Test Name";
     private static final String COL_BASELINE_ENV_NAME = "Baseline Env Name";
     private static final String COL_VIEWPORT = "Viewport";
@@ -45,8 +46,8 @@ public class ExcelHelper {
      * instead of being copied between stage-specific files.
      */
     private static final List<String> ALL_COLUMNS = List.of(
-            COL_FIGMA_URL, COL_PLATFORM, COL_APP_URL_OR_SCREEN_NAME, COL_TEST_NAME, COL_BASELINE_ENV_NAME,
-            COL_VIEWPORT, COL_SCALE, COL_FORMAT, COL_SKIP,
+            COL_FIGMA_URL, COL_PLATFORM, COL_APP_URL_OR_SCREEN_NAME, COL_SCENARIO_NAME, COL_TEST_NAME,
+            COL_BASELINE_ENV_NAME, COL_VIEWPORT, COL_SCALE, COL_FORMAT, COL_SKIP,
             COL_APP_NAME, COL_BASELINE_BATCH_URL, COL_STATUS, COL_ERROR_MESSAGE,
             COL_LOCATOR, COL_COMPARISON_BATCH_URL, COL_VALIDATION_STATUS);
 
@@ -65,9 +66,11 @@ public class ExcelHelper {
                     continue;
                 }
                 FigmaRow figmaRow = new FigmaRow();
+                figmaRow.rowNumber = i + 1;
                 figmaRow.figmaUrl = getCellValue(row, headerIndex.get(COL_FIGMA_URL));
                 figmaRow.platform = getCellValue(row, headerIndex.get(COL_PLATFORM));
                 figmaRow.appUrlOrScreenName = getCellValue(row, headerIndex.get(COL_APP_URL_OR_SCREEN_NAME));
+                figmaRow.scenarioName = getCellValue(row, headerIndex.get(COL_SCENARIO_NAME));
                 figmaRow.testName = getCellValue(row, headerIndex.get(COL_TEST_NAME));
                 figmaRow.baselineEnvName = getCellValue(row, headerIndex.get(COL_BASELINE_ENV_NAME));
                 figmaRow.viewport = getCellValue(row, headerIndex.get(COL_VIEWPORT));
@@ -134,6 +137,7 @@ public class ExcelHelper {
         map.put(COL_FIGMA_URL, nullToEmpty(row.figmaUrl));
         map.put(COL_PLATFORM, nullToEmpty(row.platform));
         map.put(COL_APP_URL_OR_SCREEN_NAME, nullToEmpty(row.appUrlOrScreenName));
+        map.put(COL_SCENARIO_NAME, nullToEmpty(row.scenarioName));
         map.put(COL_TEST_NAME, nullToEmpty(row.testName));
         map.put(COL_BASELINE_ENV_NAME, nullToEmpty(row.baselineEnvName));
         map.put(COL_VIEWPORT, nullToEmpty(row.viewport));

@@ -56,10 +56,12 @@ class and choosing **Run**.
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
-  one TestNG invocation per non-`Skip` `Platform=Web` row. For each row it opens
-  `App URL / Screen Name` with Selenium and submits an Applitools Eyes comparison against
-  the `Baseline Env Name` baseline (full page if `Locator` is blank, otherwise just that
-  CSS/XPath-selected region).
+  one TestNG invocation per group of non-`Skip` `Platform=Web` rows — a group is either
+  one standalone row, or several consecutive rows sharing the same `Scenario Name`. For
+  each row/step in the group it opens `App URL / Screen Name` with Selenium (in one
+  continuous browser session for a scenario) and submits an Applitools Eyes comparison
+  against the group's `Baseline Env Name` baseline (full page if `Locator` is blank,
+  otherwise just that CSS/XPath-selected region).
   ```bash
   ./gradlew compareWebWithFigma
   # or against a specific file:
@@ -68,14 +70,14 @@ class and choosing **Run**.
   (`compareWebWithFigma` is a shortcut for `./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest`,
   which still works too if you want it.)
 
-  One `VisualGridRunner` and one `BatchInfo` are shared across every row for the whole
-  run — creating a new one per row would repeatedly start/stop the Ultrafast Grid's
-  background process and hang after the first row. Because results from a shared
-  runner are only available once every submitted check has finished, individual rows
-  just submit their check via `closeAsync()`; the actual pass/fail, `Comparison Batch
+  One `VisualGridRunner` and one `BatchInfo` are shared across every group for the whole
+  run — creating a new one per group would repeatedly start/stop the Ultrafast Grid's
+  background process and hang after the first one. Because results from a shared
+  runner are only available once every submitted check has finished, groups just
+  submit their checks via `closeAsync()`; the actual pass/fail, `Comparison Batch
   URL`, and `Validation Status` are collected once in `@AfterSuite` (matched back to
-  each row by test name), written to the Excel file, and the suite fails there if any
-  row had a visual difference.
+  each group's rows by test/scenario name), written to the Excel file, and the suite
+  fails there if any group had a visual difference.
 
 `WebFigmaTest` configures Eyes via its own per-test `VisualGridRunner` (it only ever
 runs one check, so that's fine); `BajajFinservWebTest` configures browsers/viewports

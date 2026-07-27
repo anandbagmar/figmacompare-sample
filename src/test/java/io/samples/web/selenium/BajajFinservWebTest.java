@@ -1,8 +1,8 @@
 package io.samples.web.selenium;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -35,6 +35,7 @@ import io.samples.eyes.ComparisonResultRecorder;
 import io.samples.excel.ExcelHelper;
 import io.samples.excel.FigmaExcelFile;
 import io.samples.excel.FigmaRow;
+import io.samples.excel.FigmaValidation;
 
 /**
  * Web path of the compareWithFigma step described in README_FigmaVisualValidation.md:
@@ -45,14 +46,17 @@ import io.samples.excel.FigmaRow;
  * written back to the same file in place, plus a pass/fail summary. Rows with "Skip" set
  * are left untouched and not processed.
  *
- * This class is the template for any generic web comparison: unlike mobile, a single
- * data-driven test can handle every web row, since Selenium can navigate to any URL
- * directly (see BajajFinservAndroidTest for why mobile needs one test per app instead).
+ * Rows sharing the same non-blank "Scenario Name" (consecutively, in sheet order) run as
+ * one multi-step test in a single continuous browser session: one eyes.open(), one
+ * driver.get()+check() per row/step, one close(). A standalone row (blank Scenario Name)
+ * is just a scenario of one step - there's a single code path for both cases, since
+ * Selenium can navigate to any URL directly whether it's one step or several (unlike
+ * mobile, see BajajFinservAndroidTest for why that needs one test per app instead).
  *
  * One VisualGridRunner and one BatchInfo are shared for the whole run (creating one per
- * row would repeatedly start/stop the Ultrafast Grid's background process and hang).
- * Because of that, individual rows only submit their check via closeAsync() - actual
- * results are collected once, in @AfterSuite, and matched back to each row by test name.
+ * group would repeatedly start/stop the Ultrafast Grid's background process and hang).
+ * Because of that, groups only submit their checks via closeAsync() - actual results are
+ * collected once, in @AfterSuite, and matched back to each group's rows by test name.
  */
 public class BajajFinservWebTest {
 
@@ -64,6 +68,7 @@ public class BajajFinservWebTest {
 
     private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
+    private static List<List<FigmaRow>> webGroups;
     private static VisualGridRunner visualGridRunner;
     private static BatchInfo batchInfo;
 
@@ -79,15 +84,13 @@ public class BajajFinservWebTest {
     @AfterSuite
     public static void afterSuite() {
         try {
-            if (null == allRows || allRows.isEmpty()) {
+            if (null == webGroups || webGroups.isEmpty()) {
                 return;
             }
-            Map<String, FigmaRow> rowsByTestName = allRows.stream()
-                    .filter(row -> !isBlank(row.testName) || !isBlank(row.appUrlOrScreenName))
-                    .collect(Collectors.toMap(
-                            row -> isBlank(row.testName) ? row.appUrlOrScreenName : row.testName,
-                            row -> row,
-                            (first, second) -> first));
+            Map<String, List<FigmaRow>> rowsByTestName = new LinkedHashMap<>();
+            for (List<FigmaRow> group : webGroups) {
+                rowsByTestName.put(resolveScenarioTestName(group), group);
+            }
 
             TestResultsSummary summary = visualGridRunner.getAllTestResults(false);
             boolean isPass = ComparisonResultRecorder.recordAndCheckPass(rowsByTestName, summary);
@@ -105,15 +108,18 @@ public class BajajFinservWebTest {
         }
     }
 
-    @DataProvider(name = "webRows")
-    public static Object[][] webRows() {
+    @DataProvider(name = "webGroups")
+    public static Object[][] webGroups() {
         figmaExcelPath = FigmaExcelFile.resolvePath(System.getProperty("figmaExcel"));
         allRows = ExcelHelper.readRows(figmaExcelPath);
-        List<FigmaRow> webRows = FigmaExcelFile.filterByPlatform(allRows, "web");
+        FigmaValidation.throwIfAny(FigmaValidation.validate(allRows));
 
-        Object[][] data = new Object[webRows.size()][1];
-        for (int i = 0; i < webRows.size(); i++) {
-            data[i][0] = webRows.get(i);
+        List<FigmaRow> webRows = FigmaExcelFile.filterByPlatform(allRows, "web");
+        webGroups = FigmaExcelFile.groupContiguous(webRows);
+
+        Object[][] data = new Object[webGroups.size()][1];
+        for (int i = 0; i < webGroups.size(); i++) {
+            data[i][0] = webGroups.get(i);
         }
         return data;
     }
@@ -158,32 +164,49 @@ public class BajajFinservWebTest {
         return eyes;
     }
 
-    @Test(dataProvider = "webRows")
-    void compareWebRowWithFigmaBaseline(FigmaRow row) {
-        String appName = isBlank(row.appName) ? DEFAULT_APP_NAME : row.appName;
-        String testName = isBlank(row.testName) ? row.appUrlOrScreenName : row.testName;
-        String baselineName = isBlank(row.baselineEnvName) ? testName + "-baseline" : row.baselineEnvName;
-        RectangleSize viewportSize = ExcelHelper.parseViewport(row.viewport);
+    @Test(dataProvider = "webGroups")
+    void compareWebGroupWithFigmaBaseline(List<FigmaRow> group) {
+        FigmaRow firstRow = group.get(0);
+        String appName = isBlank(firstRow.appName) ? DEFAULT_APP_NAME : firstRow.appName;
+        String scenarioTestName = resolveScenarioTestName(group);
+        String baselineName = isBlank(firstRow.baselineEnvName)
+                ? scenarioTestName + "-baseline"
+                : firstRow.baselineEnvName;
+        RectangleSize viewportSize = ExcelHelper.parseViewport(firstRow.viewport);
         if (null == viewportSize) {
             viewportSize = DEFAULT_VIEWPORT;
         }
 
         Eyes eyesSelenium = initialiseEyes(appName, baselineName, viewportSize);
         try {
-            driver.get(row.appUrlOrScreenName);
-            eyesSelenium.open(driver, appName, testName, viewportSize);
-            if (isBlank(row.locator)) {
-                eyesSelenium.check(testName, Target.window());
-            } else {
-                eyesSelenium.check(testName, Target.region(parseLocator(row.locator)));
+            eyesSelenium.open(driver, appName, scenarioTestName, viewportSize);
+            for (FigmaRow row : group) {
+                String stepName = resolveStepName(row);
+                driver.get(row.appUrlOrScreenName);
+                if (isBlank(row.locator)) {
+                    eyesSelenium.check(stepName, Target.window());
+                } else {
+                    eyesSelenium.check(stepName, Target.region(parseLocator(row.locator)));
+                }
             }
             eyesSelenium.closeAsync();
         } catch (RuntimeException ex) {
-            row.validationStatus = "Failed";
-            row.errorMessage = ex.getMessage();
+            for (FigmaRow row : group) {
+                row.validationStatus = "Failed";
+                row.errorMessage = ex.getMessage();
+            }
             eyesSelenium.abortIfNotClosed();
             throw ex;
         }
+    }
+
+    private static String resolveScenarioTestName(List<FigmaRow> group) {
+        String scenarioName = FigmaExcelFile.scenarioNameOf(group.get(0));
+        return null != scenarioName ? scenarioName : resolveStepName(group.get(0));
+    }
+
+    private static String resolveStepName(FigmaRow row) {
+        return isBlank(row.testName) ? row.appUrlOrScreenName : row.testName;
     }
 
     private static By parseLocator(String locator) {

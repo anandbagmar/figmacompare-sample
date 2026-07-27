@@ -2,6 +2,7 @@ package io.samples;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -53,38 +54,64 @@ public class Baseline {
     public static BaselineUploadResult uploadImageAndSetAsBaseline(EyesRunner runner, String baseLineFilePath,
             String baselineName, String appName, String testName, RectangleSize viewportSize, String apiKey,
             String serverUrl, BatchInfo batch) {
-        if (null == apiKey || apiKey.isBlank()) {
-            throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
-                    + "Set it in config.properties or as an environment variable.");
-        }
-        if (null == serverUrl || serverUrl.isBlank()) {
-            throw new IllegalStateException("APPLITOOLS_SERVER_URL is required but was null/blank. "
-                    + "Set it in config.properties or as an environment variable.");
-        }
+        requireCredentials(apiKey, serverUrl);
         return doUpload(runner, baseLineFilePath, baselineName, appName, testName, viewportSize, apiKey, serverUrl,
                 batch);
+    }
+
+    /**
+     * Uploads a whole ordered sequence of images as the steps of ONE Applitools test (one
+     * eyes.open, one check() per step, one close) - for a Figma "scenario" of 1-n frames
+     * exported together, matching how the Applitools Figma plugin itself uploads a
+     * multi-frame scenario (confirmed via HAR: one open with scenarioIdOrName, one match
+     * call per frame with its own step name, one close). A single-element steps list is
+     * exactly equivalent to the single-image overload above - there's no separate
+     * "standalone" code path, a standalone row is just a scenario of one step.
+     */
+    public static BaselineUploadResult uploadScenarioAndSetAsBaseline(EyesRunner runner, String appName,
+            String scenarioTestName, String baselineName, RectangleSize viewportSize, String apiKey,
+            String serverUrl, BatchInfo batch, List<ScenarioStep> steps) {
+        requireCredentials(apiKey, serverUrl);
+        if (null == steps || steps.isEmpty()) {
+            throw new IllegalArgumentException("A scenario needs at least one step");
+        }
+
+        com.applitools.eyes.images.Eyes eyesImages = configureEyes(runner, appName, baselineName, apiKey, serverUrl,
+                batch);
+        try {
+            RectangleSize resolvedViewport = viewportSize;
+            if (null == resolvedViewport) {
+                BufferedImage firstImage = ImageIO.read(new File(steps.get(0).imagePath));
+                resolvedViewport = new RectangleSize(firstImage.getWidth(), firstImage.getHeight());
+                System.out.println("Viewport is not provided. Using first step's image size: "
+                        + resolvedViewport.getWidth() + " x " + resolvedViewport.getHeight() + " pixels");
+            }
+            eyesImages.open(appName, scenarioTestName, resolvedViewport);
+            for (ScenarioStep step : steps) {
+                File imageFile = new File(step.imagePath);
+                System.out.println("Step '" + step.stepName + "' - Image File '" + imageFile.getName()
+                        + "' exists? " + imageFile.exists());
+                BufferedImage img = ImageIO.read(imageFile);
+                eyesImages.check(step.stepName, Target.image(img));
+                System.out.println("Checked step: " + step.stepName);
+            }
+            TestResults testResults = eyesImages.close(false);
+            System.out.println("TestResults: " + testResults);
+            return new BaselineUploadResult(testResults, resolvedViewport);
+        } catch (Exception ex) {
+            System.out.println(ex);
+            ex.printStackTrace();
+            return new BaselineUploadResult(null, viewportSize);
+        } finally {
+            eyesImages.abortIfNotClosed();
+        }
     }
 
     private static BaselineUploadResult doUpload(EyesRunner runner, String baseLineFilePath, String baselineName,
             String appName, String testName, RectangleSize viewportSize, String apiKey, String serverUrl,
             BatchInfo batch) {
-        com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
-        eyesImages.setBaselineEnvName(baselineName);
-        com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
-        config.setHostOS(System.getProperty("os.name"));
-        config.setHostApp(appName);
-        config.setBaselineEnvName(baselineName);
-        config.setSaveNewTests(Boolean.TRUE);
-        if (null != apiKey) {
-            config.setApiKey(apiKey);
-        }
-        if (null != serverUrl) {
-            config.setServerUrl(serverUrl);
-        }
-        if (null != batch) {
-            config.setBatch(batch);
-        }
-        eyesImages.setConfiguration(config);
+        com.applitools.eyes.images.Eyes eyesImages = configureEyes(runner, appName, baselineName, apiKey, serverUrl,
+                batch);
 
         try {
             File imageFile = new File(baseLineFilePath);
@@ -109,6 +136,49 @@ public class Baseline {
             return new BaselineUploadResult(null, viewportSize);
         } finally {
             eyesImages.abortIfNotClosed();
+        }
+    }
+
+    private static com.applitools.eyes.images.Eyes configureEyes(EyesRunner runner, String appName,
+            String baselineName, String apiKey, String serverUrl, BatchInfo batch) {
+        com.applitools.eyes.images.Eyes eyesImages = new com.applitools.eyes.images.Eyes(runner);
+        eyesImages.setBaselineEnvName(baselineName);
+        com.applitools.eyes.config.Configuration config = eyesImages.getConfiguration();
+        config.setHostOS(System.getProperty("os.name"));
+        config.setHostApp(appName);
+        config.setBaselineEnvName(baselineName);
+        config.setSaveNewTests(Boolean.TRUE);
+        if (null != apiKey) {
+            config.setApiKey(apiKey);
+        }
+        if (null != serverUrl) {
+            config.setServerUrl(serverUrl);
+        }
+        if (null != batch) {
+            config.setBatch(batch);
+        }
+        eyesImages.setConfiguration(config);
+        return eyesImages;
+    }
+
+    private static void requireCredentials(String apiKey, String serverUrl) {
+        if (null == apiKey || apiKey.isBlank()) {
+            throw new IllegalStateException("APPLITOOLS_API_KEY is required but was null/blank. "
+                    + "Set it in config.properties or as an environment variable.");
+        }
+        if (null == serverUrl || serverUrl.isBlank()) {
+            throw new IllegalStateException("APPLITOOLS_SERVER_URL is required but was null/blank. "
+                    + "Set it in config.properties or as an environment variable.");
+        }
+    }
+
+    public static class ScenarioStep {
+        public final String stepName;
+        public final String imagePath;
+
+        public ScenarioStep(String stepName, String imagePath) {
+            this.stepName = stepName;
+            this.imagePath = imagePath;
         }
     }
 }
