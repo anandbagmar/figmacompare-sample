@@ -13,6 +13,39 @@ stage, so there's no copying between stage-specific files.
 | ✅ Implemented | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
 | ✅ Implemented (Android; template for other apps/iOS) | `compareWithFigma` mobile path — [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
+## Overview
+
+```mermaid
+flowchart TD
+    S1["Step 1 — UI/UX prepares the Excel file<br/>Figma URL, Platform, App URL/Screen Name,<br/>Scenario Name (optional)"]
+    S2run["./gradlew uploadFromFigma"]
+    V1{"Pre-flight validation<br/>passes?"}
+    V1fail["Print all problems, abort<br/>(nothing runs)"]
+    Group1["Group rows by Scenario Name<br/>(standalone row = group of one)"]
+    Upload["Per group: download Figma image(s),<br/>upload as one Applitools test<br/>(one open, N checks, one close)"]
+    Write1["Write back: App Name, Baseline Env Name,<br/>Baseline Batch URL, Status"]
+    S3["Step 3 — QA reviews baselines,<br/>sets Locator (web rows)"]
+    S4run["./gradlew compareWebWithFigma<br/>./gradlew compareAndroidWithFigma"]
+    V2{"Pre-flight validation<br/>passes?"}
+    V2fail["Print all problems, abort<br/>(nothing runs)"]
+    Group2["Group rows by Scenario Name"]
+    Platform{"Platform?"}
+    Web["Web: Selenium driver.get() + check()<br/>per row/step, one browser session per group"]
+    Mobile["Android/iOS: run each row's SCREEN_FLOWS<br/>entry + checkWindow(), one app session per group"]
+    Write2["Write back: Comparison Batch URL,<br/>Validation Status"]
+    S5["Step 5 — UI/UX reviews results in the<br/>Excel file + Applitools dashboard,<br/>files Jira for real diffs"]
+
+    S1 --> S2run --> V1
+    V1 -- no --> V1fail
+    V1 -- yes --> Group1 --> Upload --> Write1 --> S3
+    S3 --> S4run --> V2
+    V2 -- no --> V2fail
+    V2 -- yes --> Group2 --> Platform
+    Platform -- Web --> Web --> Write2
+    Platform -- Android/iOS --> Mobile --> Write2
+    Write2 --> S5
+```
+
 ## Roles
 
 - **UI/UX Team** — owns the Figma designs, prepares the initial Excel rows,
