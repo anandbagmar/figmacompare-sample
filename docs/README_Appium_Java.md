@@ -84,8 +84,11 @@ class and choosing **Run**.
   against the `Baseline Env Name` baseline, and writes `Comparison Batch URL` +
   `Validation Status` back into the same file in place, same as the web path.
   ```bash
-  ./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest
+  ./gradlew compareAndroidWithFigma
   ```
+  (a shortcut for `./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest`,
+  which still works too if you want it.) A new app's test class should get its own
+  `compare<App>WithFigma` task in `build.gradle`, following the same pattern.
 
   This is the template for any other app's native Appium comparison test: start the
   Appium server, create the driver, and record/write back results using the shared

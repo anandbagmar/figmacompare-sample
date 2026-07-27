@@ -57,49 +57,73 @@ static def getCurrentTimestamp() {
 
 project.ext.logDir = "${rootDir}/reports/" + getCurrentDatestamp() + "/" + getCurrentTimestamp() as GStringImpl
 
+// Shared TestNG/logging/env setup applied to `test` and to each per-platform
+// compare*WithFigma task below, so they all behave consistently.
+ext.configureTestNGTask = { Test t ->
+    if (project.hasProperty("figmaExcel")) {
+        t.systemProperty "figmaExcel", project.property("figmaExcel")
+    }
+    t.doFirst {
+        environment "APPLITOOLS_DONT_CLOSE_BATCHES", "true"
+        environment "APPLITOOLS_LOG_DIR", "${project.logDir}/applitools_logs"
+        environment "LOG_DIR", "${project.logDir}"
+    }
+    t.useTestNG()
+    t.reports {
+        html.required.set(true)
+        junitXml.required.set(true)
+        html.outputLocation.set(file("$project.logDir/html"))
+        junitXml.outputLocation.set(file("$project.logDir/junit"))
+    }
+    t.reports.junitXml.outputPerTestCase(true)
+    t.testLogging {
+        events "started", "passed", "skipped", "failed"
+        // show standard out and standard error of the test JVM(s) on the console
+        showStandardStreams = true
+        // show full exception trace
+        exceptionFormat = 'full'
+        showStackTraces = true
+        showCauses = true
+        showExceptions = true
+    }
+    println("Log directory: ${project.logDir}")
+    println("Debug mode: " + System.getProperty('debug', 'false'))
+    // attach debugger
+    if (System.getProperty('debug', 'false') == 'true') {
+        println("In debug mode")
+        t.jvmArgs '-Xdebug', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,' + 'address=*:5005'
+    }
+}
+
 test {
     if (project.hasProperty("testClass")) {
         def classFilePattern = project.property("testClass").toString().replace('.', '/') + ".class"
         include classFilePattern
         println("Running only test class include pattern: ${classFilePattern}")
     }
-    if (project.hasProperty("figmaExcel")) {
-        systemProperty "figmaExcel", project.property("figmaExcel")
-    }
-
-    doFirst {
-        environment "APPLITOOLS_DONT_CLOSE_BATCHES", "true"
-        environment "APPLITOOLS_LOG_DIR", "${project.logDir}/applitools_logs"
-        environment "LOG_DIR", "${project.logDir}"
-    }
-    useTestNG() {
-        reports {
-            html.required.set(true)
-            junitXml.required.set(true)
-            html.outputLocation.set(file("$project.logDir/html"))
-            junitXml.outputLocation.set(file("$project.logDir/junit"))
-        }
-        reports.junitXml.outputPerTestCase(true)
-        testLogging {
-            events "started", "passed", "skipped", "failed"
-            // show standard out and standard error of the test JVM(s) on the console
-            showStandardStreams = true
-            // show full exception trace
-            exceptionFormat = 'full'
-            showStackTraces = true
-            showCauses = true
-            showExceptions = true
-        }
-        println("Log directory: ${project.logDir}")
-        println("Debug mode: " + System.getProperty('debug', 'false'))
-        // attach debugger
-        if (System.getProperty('debug', 'false') == 'true') {
-            println("In debug mode")
-            jvmArgs '-Xdebug', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,' + 'address=*:5005'
-        }
-
-    }
+    configureTestNGTask(it)
 }
+
+task compareWebWithFigma(type: Test) {
+    group = "applitools"
+    description = "Run compareWithFigma for Web rows in the shared Figma Excel file"
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include "io/samples/web/selenium/BajajFinservWebTest.class"
+    configureTestNGTask(it)
+}
+
+task compareAndroidWithFigma(type: Test) {
+    group = "applitools"
+    description = "Run compareWithFigma for Android rows in the shared Figma Excel file"
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include "io/samples/appium/android/BajajFinservAndroidTest.class"
+    configureTestNGTask(it)
+}
+
+// compareIosWithFigma will follow the same pattern once an iOS compareWithFigma test
+// class exists (see README_FigmaVisualValidation.md "What's next").
 
 task uploadFromFigma(type: JavaExec) {
     group = "applitools"

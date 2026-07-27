@@ -92,9 +92,9 @@ just submit their check; results are collected once at the end (`@AfterSuite`),
 matched back to each row by test name, written to the Excel file, and the suite
 fails there if anything mismatched. Run it with:
 ```bash
-./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
+./gradlew compareWebWithFigma
 # or against a specific file:
-./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PfigmaExcel=path/to/file.xlsx
+./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
 ```
 See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details.
 
@@ -109,7 +109,7 @@ app to a short Appium method that leaves the app on that screen. The data-driven
 looks up the matching flow for each `Platform=Android` row, runs it, then does the same
 Applitools comparison + Excel write-back as the web path.
 ```bash
-./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest
+./gradlew compareAndroidWithFigma
 ```
 A new Android/iOS app means a new test class following this same template — reusing the
 shared [AppiumServerSupport](src/test/java/io/samples/appium/AppiumServerSupport.java),

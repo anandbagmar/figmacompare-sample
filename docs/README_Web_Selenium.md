@@ -61,10 +61,12 @@ class and choosing **Run**.
   the `Baseline Env Name` baseline (full page if `Locator` is blank, otherwise just that
   CSS/XPath-selected region).
   ```bash
-  ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest
+  ./gradlew compareWebWithFigma
   # or against a specific file:
-  ./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest -PfigmaExcel=path/to/file.xlsx
+  ./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
   ```
+  (`compareWebWithFigma` is a shortcut for `./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest`,
+  which still works too if you want it.)
 
   One `VisualGridRunner` and one `BatchInfo` are shared across every row for the whole
   run — creating a new one per row would repeatedly start/stop the Ultrafast Grid's
