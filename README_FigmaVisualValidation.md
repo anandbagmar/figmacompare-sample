@@ -15,35 +15,39 @@ stage, so there's no copying between stage-specific files.
 
 ## Overview
 
+Each box below shows, top to bottom: what goes **in**, what runs, and what comes **out** —
+color shows which role is responsible for that stage.
+
 ```mermaid
 flowchart TD
-    S1["Step 1 — UI/UX prepares the Excel file<br/>Figma URL, Platform, App URL/Screen Name,<br/>Scenario Name (optional)"]
-    S2run["./gradlew uploadFromFigma"]
-    V1{"Pre-flight validation<br/>passes?"}
-    V1fail["Print all problems, abort<br/>(nothing runs)"]
-    Group1["Group rows by Scenario Name<br/>(standalone row = group of one)"]
-    Upload["Per group: download Figma image(s),<br/>upload as one Applitools test<br/>(one open, N checks, one close)"]
-    Write1["Write back: App Name, Baseline Env Name,<br/>Baseline Batch URL, Status"]
-    S3["Step 3 — QA reviews baselines,<br/>sets Locator (web rows)"]
-    S4run["./gradlew compareWebWithFigma<br/>./gradlew compareAndroidWithFigma"]
-    V2{"Pre-flight validation<br/>passes?"}
-    V2fail["Print all problems, abort<br/>(nothing runs)"]
-    Group2["Group rows by Scenario Name"]
-    Platform{"Platform?"}
-    Web["Web: Selenium driver.get() + check()<br/>per row/step, one browser session per group"]
-    Mobile["Android/iOS: run each row's SCREEN_FLOWS<br/>entry + checkWindow(), one app session per group"]
-    Write2["Write back: Comparison Batch URL,<br/>Validation Status"]
-    S5["Step 5 — UI/UX reviews results in the<br/>Excel file + Applitools dashboard,<br/>files Jira for real diffs"]
+    classDef uiux fill:#dbe9ff,stroke:#3366cc,color:#000,text-align:left
+    classDef qa fill:#ffe9cf,stroke:#cc8800,color:#000,text-align:left
+    classDef gate fill:#f5f5f5,stroke:#999999,color:#000,text-align:left
 
-    S1 --> S2run --> V1
+    S1["<b>Step 1 · UI/UX Team</b><br/>─────────<br/>IN: Figma designs; list of pages/<br/>screens/scenarios to validate<br/>─────────<br/>DO: fill in one Excel row per<br/>design (group scenario steps by<br/>a shared Scenario Name)<br/>─────────<br/>OUT: Figma URL, Platform, App URL/<br/>Screen Name, Scenario Name"]
+
+    V1{"<b>Step 2 · QA</b> runs<br/>./gradlew uploadFromFigma<br/>─────────<br/>Pre-flight validation OK?"}
+    V1fail["OUT: full list of problems<br/>printed, nothing runs"]
+    Upload["<b>Step 2 · QA</b> (automated)<br/>─────────<br/>IN: Excel from Step 1 +<br/>config.properties (FIGMA_TOKEN,<br/>Applitools creds)<br/>─────────<br/>DO: group rows by Scenario Name;<br/>download Figma image(s); upload<br/>as one Applitools test per group<br/>─────────<br/>OUT: App Name, Baseline Env Name,<br/>Baseline Batch URL, Status"]
+
+    S3["<b>Step 3 · QA</b> (manual)<br/>─────────<br/>IN: Excel from Step 2<br/>(Baseline Batch URL) +<br/>Applitools dashboard<br/>─────────<br/>DO: review each baseline, decide<br/>full page vs. component<br/>─────────<br/>OUT: Locator (web rows only)"]
+
+    V2{"<b>Step 4 · QA</b> runs<br/>./gradlew compareWebWithFigma /<br/>compareAndroidWithFigma<br/>─────────<br/>Pre-flight validation OK?"}
+    V2fail["OUT: full list of problems<br/>printed, nothing runs"]
+    Compare["<b>Step 4 · QA</b> (automated)<br/>─────────<br/>IN: Excel from Step 3 + the live<br/>UAT/Prod app (web URLs, or<br/>Appium SCREEN_FLOWS for mobile)<br/>─────────<br/>DO: group rows by Scenario Name;<br/>Selenium (web) or Appium (mobile)<br/>runs each group as one test<br/>─────────<br/>OUT: Comparison Batch URL,<br/>Validation Status"]
+
+    S5["<b>Step 5 · UI/UX Team</b> (manual)<br/>─────────<br/>IN: Excel from Step 4 +<br/>Applitools dashboard<br/>─────────<br/>DO: review flagged differences<br/>with Visual AI<br/>─────────<br/>OUT: Jira issues for real<br/>discrepancies"]
+
+    S1 --> V1
     V1 -- no --> V1fail
-    V1 -- yes --> Group1 --> Upload --> Write1 --> S3
-    S3 --> S4run --> V2
+    V1 -- yes --> Upload --> S3
+    S3 --> V2
     V2 -- no --> V2fail
-    V2 -- yes --> Group2 --> Platform
-    Platform -- Web --> Web --> Write2
-    Platform -- Android/iOS --> Mobile --> Write2
-    Write2 --> S5
+    V2 -- yes --> Compare --> S5
+
+    class S1,S5 uiux
+    class Upload,S3,Compare qa
+    class V1,V1fail,V2,V2fail gate
 ```
 
 ## Roles
