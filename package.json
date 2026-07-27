@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@appium/doctor": "2.1.15",
-    "@appium/relaxed-caps-plugin": "2.2.4",
+    "@appium/relaxed-caps-plugin": "2.2.5",
     "appium": "3.5.2",
     "appium-device-farm": "11.3.2",
     "appium-uiautomator2-driver": "8.1.0",
