@@ -46,6 +46,8 @@ public class AndroidScenarioRegistry {
      */
     public static void ensureAllProvidersRegistered() {
         loadClass("io.samples.appium.android.BajajFinservAndroidTest");
+        loadClass("io.samples.appium.android.AppAutomationPlaygroundAndroidHomeTest");
+        loadClass("io.samples.appium.android.AppAutomationPlaygroundAndroidPlannerScenarioTest");
     }
 
     private static void loadClass(String className) {

@@ -119,6 +119,14 @@ class and choosing **Run**.
   [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java), and
   [FigmaValidation](../src/test/java/io/samples/excel/FigmaValidation.java) utilities.
 
+  Two more scenario providers, for the "App Automation Playground" demo app
+  (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
+  scenario side by side:
+  [AppAutomationPlaygroundAndroidHomeTest.java](../src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
+  (single screen) and
+  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  (4-screen Community Meeting Planner flow).
+
 ### iOS
 
 * [HelloWorldTest.java](../src/test/java/io/samples/appium/ios/HelloWorldTest.java) — a basic
@@ -132,5 +140,24 @@ class and choosing **Run**.
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.ios.WebiOSHelloWorldTest
   ```
+
+* [CompareIosWithFigma.java](../src/test/java/io/samples/appium/ios/CompareIosWithFigma.java) —
+  the **one runner** for the mobile (iOS) path of `compareWithFigma`, mirroring
+  `CompareAndroidWithFigma` exactly (see the Android section above and
+  [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)): one
+  invocation per group of `Platform=iOS` rows sharing a `Scenario Name`, dispatched
+  through [IosScenarioRegistry](../src/test/java/io/samples/appium/ios/IosScenarioRegistry.java)
+  regardless of which provider class registered the scenario.
+  ```bash
+  ./gradlew compareIosWithFigma
+  ```
+  Scenario providers register a `.app` bundle path (not a `.zip` — unzip it once
+  under `sampleApps/`) instead of an APK:
+  [AppAutomationPlaygroundIosHomeTest.java](../src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
+  (single screen) and
+  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
+  (4-screen flow) — the iOS counterparts of the Android providers above, using the
+  same accessibility identifiers (this app is built as a deliberate cross-platform
+  automation demo sharing testIDs between platforms).
 
 Back to main [README](../README.md)

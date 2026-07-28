@@ -122,8 +122,14 @@ task compareAndroidWithFigma(type: Test) {
     configureTestNGTask(it)
 }
 
-// compareIosWithFigma will follow the same pattern once an iOS compareWithFigma test
-// class exists (see README_FigmaVisualValidation.md "What's next").
+task compareIosWithFigma(type: Test) {
+    group = "applitools"
+    description = "Run compareWithFigma for iOS rows in the shared Figma Excel file"
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include "io/samples/appium/ios/CompareIosWithFigma.class"
+    configureTestNGTask(it)
+}
 
 task uploadFromFigma(type: JavaExec) {
     group = "applitools"

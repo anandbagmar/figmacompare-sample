@@ -20,8 +20,10 @@ public class FigmaClient {
     private static final Gson GSON = new Gson();
     // Figma renders the export server-side on first request, which can take well over
     // OkHttp's 10s default read timeout for large/complex frames.
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 6;
     private static final Duration INITIAL_RETRY_DELAY = Duration.ofSeconds(2);
+    private static final Duration INITIAL_RATE_LIMIT_DELAY = Duration.ofSeconds(15);
+    private static final Duration MAX_RETRY_DELAY = Duration.ofSeconds(60);
     private final OkHttpClient httpClient = new OkHttpClient.Builder()
             .connectTimeout(Duration.ofSeconds(30))
             .readTimeout(Duration.ofSeconds(120))
@@ -113,16 +115,31 @@ public class FigmaClient {
     }
 
     /**
-     * Retries only on network-level failures (timeouts, connection resets) - not on HTTP
-     * error responses, which retrying won't fix. Uses exponential backoff between attempts.
+     * Retries on network-level failures (timeouts, connection resets) and on HTTP 429
+     * (rate limited) / 5xx (transient server error) responses - not on other HTTP error
+     * responses (4xx like 403/404), which retrying won't fix. Uses exponential backoff,
+     * honoring a Retry-After header when Figma sends one on a 429.
      */
     private Response executeWithRetry(Request request) throws IOException {
         IOException lastFailure = null;
         Duration delay = INITIAL_RETRY_DELAY;
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            Response response = null;
             try {
-                return httpClient.newCall(request).execute();
+                response = httpClient.newCall(request).execute();
+                if (response.isSuccessful() || !isRetryableStatus(response.code()) || attempt == MAX_ATTEMPTS) {
+                    return response;
+                }
+                Duration wait = retryDelayFor(response, attempt == 1 ? INITIAL_RATE_LIMIT_DELAY : delay);
+                System.out.println("Request to " + request.url() + " got HTTP " + response.code() + " (attempt "
+                        + attempt + "/" + MAX_ATTEMPTS + "). Retrying in " + wait.getSeconds() + "s...");
+                response.close();
+                sleep(wait);
+                delay = delay.multipliedBy(2);
             } catch (IOException ex) {
+                if (null != response) {
+                    response.close();
+                }
                 lastFailure = ex;
                 if (attempt == MAX_ATTEMPTS) {
                     break;
@@ -134,6 +151,26 @@ public class FigmaClient {
             }
         }
         throw lastFailure;
+    }
+
+    private static boolean isRetryableStatus(int code) {
+        return code == 429 || (code >= 500 && code < 600);
+    }
+
+    private static Duration retryDelayFor(Response response, Duration fallback) {
+        String retryAfter = response.header("Retry-After");
+        if (null != retryAfter) {
+            try {
+                Duration parsed = Duration.ofSeconds(Long.parseLong(retryAfter.trim()));
+                // Figma has been observed sending Retry-After values not actually in
+                // seconds (e.g. milliseconds) - never trust it past a sane ceiling, so a
+                // misinterpreted unit can't stall the whole run for hours.
+                return parsed.compareTo(MAX_RETRY_DELAY) > 0 ? MAX_RETRY_DELAY : parsed;
+            } catch (NumberFormatException ignored) {
+                // Fall through to the fallback delay below.
+            }
+        }
+        return fallback;
     }
 
     private static void sleep(Duration duration) {
