@@ -256,16 +256,64 @@ Open the same Excel file, filter rows where `Validation Status` is `Unresolved` 
 Visual AI match algorithms to judge whether a flagged difference is a real
 implementation bug. File a Jira issue directly from Applitools for valid discrepancies.
 
-## What's next
+## How to add a new test / scenario
 
-Steps 1–5 all have a working implementation or documented manual process for Web and
-Android. What's left:
+### A. A new standalone web page/component — no code
 
-- **iOS**: no `AppiumDriver` factory, scenario registry, or runner yet — follow the
-  Android pattern (`IosScenarioRegistry` + a `CompareIosWithFigma` runner + per-app
-  provider classes) once there's an iOS app and screens to validate.
-- **New Android apps/scenarios**: each new app needs its own provider class
-  (following `BajajFinservAndroidTest`'s pattern) plus one line in
-  `AndroidScenarioRegistry.ensureAllProvidersRegistered()`; each new scenario is
-  one more `AndroidScenarioRegistry.register(...)` call in the relevant app's
-  provider class. `CompareAndroidWithFigma` itself never changes.
+1. Add one row: `Figma URL`, `Platform=Web`, `App URL / Screen Name`. Leave
+   `Scenario Name` blank.
+2. `./gradlew uploadFromFigma`.
+3. In Step 3, optionally set `Locator` if it's a component, not a full page.
+4. `./gradlew compareWebWithFigma`.
+
+### B. A new web scenario (multiple pages as one test) — no code
+
+1. Add N **consecutive** rows, each with its own `Figma URL`/`App URL / Screen
+   Name`/`Test Name` (the step name), all sharing the same `Scenario Name`.
+2. `./gradlew uploadFromFigma` — uploads all N steps as one Applitools test.
+3. Optionally set `Locator` per row in Step 3.
+4. `./gradlew compareWebWithFigma`.
+
+### C. A new scenario for an **existing** Android/iOS app — small amount of code
+
+Example: adding a new screen/flow to the Bajaj Finserv app.
+
+1. Open that app's provider class,
+   [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java).
+2. Add a new registration in its static block:
+   ```java
+   AndroidScenarioRegistry.register("your-new-scenario-name", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
+       // whatever login/navigation this scenario's screen(s) need, e.g.:
+       // driver.findElement(...).click();
+       eyes.checkWindow(resolveStepName(rows.get(0)));
+       // for a multi-screen scenario, navigate further and call eyes.checkWindow(...) again per step
+   });
+   ```
+3. Add matching row(s) to the Excel: `Platform=Android`, `Scenario Name` set to the
+   **exact same string** you just registered, one row per step (contiguous if more
+   than one).
+4. `./gradlew uploadFromFigma`, then `./gradlew compareAndroidWithFigma`.
+
+### D. A brand-new Android app — one new class + one registry line
+
+1. Create a new provider class under `src/test/java/io/samples/appium/android/`,
+   copying `BajajFinservAndroidTest.java`'s shape (private constructor, `APP_NAME`/
+   `APK_NAME` constants, a static block calling `AndroidScenarioRegistry.register(...)`
+   for each of that app's scenarios).
+2. Add its `.apk` under `sampleApps/`.
+3. Add **one line** to
+   `AndroidScenarioRegistry.ensureAllProvidersRegistered()` (in
+   [AndroidScenarioRegistry.java](src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java))
+   loading your new class — without this, its static block (and therefore its
+   registrations) never runs.
+4. Add Excel rows (`Platform=Android`, `Scenario Name` matching what you registered).
+5. `./gradlew uploadFromFigma`, then `./gradlew compareAndroidWithFigma`.
+
+`CompareAndroidWithFigma.java` itself never needs to change for C or D — it only
+ever looks things up by `Scenario Name` in the shared registry.
+
+### E. iOS
+
+Not implemented yet. Would need an `IosScenarioRegistry`, a `CompareIosWithFigma`
+runner, and an iOS driver factory, mirroring D above — then adding a new iOS app's
+scenarios would follow the exact same steps as C/D.
