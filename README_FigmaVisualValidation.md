@@ -334,3 +334,45 @@ follow steps C/D above but:
 - add your class to `IosScenarioRegistry.ensureAllProvidersRegistered()`,
 - use `Platform=iOS` in the Excel,
 - run `./gradlew compareIosWithFigma` instead of `compareAndroidWithFigma`.
+
+### F. Plugging in your own existing Appium tests
+
+If you already have Appium tests for an app and want them driving these visual
+comparisons, this is really the same as C/D — you're not adopting a new test
+framework, just porting your existing interaction code into a `ScenarioFlow`.
+
+**Pre-requisites:**
+
+1. **The app binary** under `sampleApps/` — an `.apk` for Android, or an unzipped
+   `.app` bundle (not a `.zip`) for iOS.
+2. **Figma designs** for whatever screens/steps you want validated — each needs
+   its own Figma URL with a `node-id`.
+3. **Your test logic as plain Appium driver calls**
+   (`driver.findElement(AppiumBy...).click()`, waits, etc.) using
+   `io.appium.java_client.AppiumDriver`/`AppiumBy` — whatever your existing tests
+   already use. It doesn't matter what test runner they currently run under
+   (JUnit, Cucumber, raw TestNG) — you're reusing the interaction code, not the
+   test classes or annotations.
+4. **Decided checkpoints** — exactly which points in your existing flow should
+   become an `eyes.checkWindow(...)` call, i.e. which of your screens map to a
+   Figma frame. Not every step of an existing test needs to become a check, only
+   the ones you want validated against a design.
+5. `config.properties` already set up (Figma token, Applitools creds) — same as
+   everywhere else in this repo.
+6. **One known gap to check first:**
+   [`AndroidDriverFactory`](src/test/java/io/samples/appium/android/AndroidDriverFactory.java)/
+   [`IosDriverFactory`](src/test/java/io/samples/appium/ios/IosDriverFactory.java)
+   currently only take `(apkPath/appPath, fullReset)` — a fixed, minimal
+   capability set. If your app needs extra Appium capabilities, or your
+   comparisons need different Eyes config (batch/match-level/etc. are currently
+   global per platform, not per-app), those factories/runners would need a small
+   extension first.
+
+**Steps** — same as C/D: create one provider class per app (or scenario), port
+your interaction code into its `ScenarioFlow`, calling `eyes.checkWindow(...)`
+once per Figma row you want checked, in the same order those rows appear in the
+Excel; add one line to the registry's `ensureAllProvidersRegistered()`; add the
+matching Excel rows; run `uploadFromFigma` then `compareAndroidWithFigma`/
+`compareIosWithFigma`. See
+[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+for a worked multi-step example ported from real app exploration.
