@@ -70,40 +70,54 @@ class and choosing **Run**.
   ./gradlew test -PtestClass=io.samples.appium.android.CalculatorFigmaTest
   ```
 
-* [BajajFinservAndroidTest.java](../src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) —
-  the **mobile (Android) path of `compareWithFigma`** for the Bajaj Finserv app
-  (`app_npu_v8.3.17.apk`); see
+* [CompareAndroidWithFigma.java](../src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) —
+  the **one runner** for the mobile (Android) path of `compareWithFigma`; see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
   the same shared Figma Excel file as `BajajFinservWebTest` (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
-  one invocation per group of non-`Skip` `Platform=Android` rows — a group is either one
-  standalone row, or several consecutive rows sharing the same `Scenario Name`. Unlike
-  web, there's no generic way to navigate a native app to an arbitrary screen, so this
-  class owns a small `SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name`
-  value to a short Appium method that leaves the app on that screen — add an entry here
-  for every new screen you want to validate. For a scenario, each row/step's flow runs in
-  turn within one continuous app session (no relaunch between steps), so **every flow must
-  be self-contained** — able to reach its target screen regardless of what ran before it -
-  since the same entry may run standalone (fresh launch) or as any step of any scenario.
-  It then runs an Applitools Eyes full-page comparison against the group's
-  `Baseline Env Name` baseline, and writes `Comparison Batch URL` + `Validation Status`
-  back into the same file in place, same as the web path.
+  one invocation per group of non-`Skip` `Platform=Android` rows sharing a `Scenario Name`
+  (mandatory for every Android/iOS row — see below). For each group it looks up that
+  `Scenario Name` in [AndroidScenarioRegistry](../src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java),
+  launches the registered app (APK), and runs the registered `ScenarioFlow` in one
+  continuous app session (no relaunch between steps), then does an Applitools Eyes
+  comparison against the group's `Baseline Env Name` baseline and writes
+  `Comparison Batch URL` + `Validation Status` back into the file in place, same as the
+  web path.
   ```bash
   ./gradlew compareAndroidWithFigma
   ```
-  (a shortcut for `./gradlew test -PtestClass=io.samples.appium.android.BajajFinservAndroidTest`,
-  which still works too if you want it.) A new app's test class should get its own
-  `compare<App>WithFigma` task in `build.gradle`, following the same pattern.
+  (a shortcut for `./gradlew test -PtestClass=io.samples.appium.android.CompareAndroidWithFigma`,
+  which still works too if you want it.)
 
-  This is the template for any other app's native Appium comparison test: start the
-  Appium server, create the driver, and record/write back results using the shared
+* [BajajFinservAndroidTest.java](../src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) —
+  **not a TestNG test itself** — a *scenario provider* for the Bajaj Finserv app
+  (`app_npu_v8.3.17.apk`). Its static initializer registers this app's scenarios into
+  `AndroidScenarioRegistry`:
+  ```java
+  AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
+      // whatever login/navigation this app's real screen needs, then:
+      eyes.checkWindow(resolveStepName(rows.get(0)));
+  });
+  ```
+  Unlike web, there's no generic way to navigate a native app to an arbitrary screen —
+  reaching even one screen can need login/menu navigation specific to that app. So every
+  `ScenarioFlow` must be **fully self-contained**: it owns the whole sequence for its
+  scenario's rows (however many `eyes.checkWindow()` calls it makes, in whatever order),
+  and it's looked up purely by `Scenario Name`, regardless of which class registered it —
+  `CompareAndroidWithFigma` doesn't know or care where a scenario came from.
+
+  A new app means a new provider class following this same pattern, plus one line added to
+  `AndroidScenarioRegistry.ensureAllProvidersRegistered()` so its registrations actually run
+  (Java only executes a class's static initializer once that class is loaded/referenced).
+  `CompareAndroidWithFigma` itself never needs to change.
+
+  Both classes reuse the shared
   [AppiumServerSupport](../src/test/java/io/samples/appium/AppiumServerSupport.java),
   [AndroidDriverFactory](../src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
   [BatchSupport](../src/test/java/io/samples/eyes/BatchSupport.java),
   [ComparisonResultRecorder](../src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
   [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java), and
-  [FigmaValidation](../src/test/java/io/samples/excel/FigmaValidation.java) utilities —
-  only the screen flows and Eyes configuration specifics need to be app-specific.
+  [FigmaValidation](../src/test/java/io/samples/excel/FigmaValidation.java) utilities.
 
 ### iOS
 

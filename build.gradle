@@ -118,7 +118,7 @@ task compareAndroidWithFigma(type: Test) {
     description = "Run compareWithFigma for Android rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/appium/android/BajajFinservAndroidTest.class"
+    include "io/samples/appium/android/CompareAndroidWithFigma.class"
     configureTestNGTask(it)
 }
 

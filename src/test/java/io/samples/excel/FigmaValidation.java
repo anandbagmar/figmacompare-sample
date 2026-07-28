@@ -2,6 +2,7 @@ package io.samples.excel;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,11 @@ public class FigmaValidation {
             if (isBlank(row.appUrlOrScreenName)) {
                 errors.add(where + ": App URL / Screen Name is required");
             }
+            if (!isBlank(row.platform) && isMobile(row.platform) && null == FigmaExcelFile.scenarioNameOf(row)) {
+                errors.add(where + ": Scenario Name is required for Platform=Android/iOS rows - mobile screens "
+                        + "may need bespoke login/navigation, so every mobile test is dispatched by Scenario "
+                        + "Name, even for a single screen.");
+            }
             if (!isBlank(row.viewport)) {
                 try {
                     ExcelHelper.parseViewport(row.viewport);
@@ -66,16 +72,29 @@ public class FigmaValidation {
         return errors;
     }
 
-    /** Additional mobile-only check: every screen name used must have a registered flow. */
-    public static List<String> validateScreenFlows(List<FigmaRow> platformRows, Set<String> registeredScreenNames) {
+    /**
+     * Additional mobile-only check: every distinct Scenario Name used by these rows must
+     * have a registered scenario test (e.g. BajajFinservAndroidTest.SCENARIO_TESTS).
+     */
+    public static List<String> validateScenarioTests(List<FigmaRow> platformRows, Set<String> registeredScenarios) {
         List<String> errors = new ArrayList<>();
+        Set<String> seenScenarios = new LinkedHashSet<>();
         for (FigmaRow row : platformRows) {
-            if (!registeredScreenNames.contains(row.appUrlOrScreenName)) {
-                errors.add("row " + row.rowNumber + ": no screen flow registered for \""
-                        + row.appUrlOrScreenName + "\"");
+            String scenarioName = FigmaExcelFile.scenarioNameOf(row);
+            if (null == scenarioName || !seenScenarios.add(scenarioName)) {
+                continue;
+            }
+            if (!registeredScenarios.contains(scenarioName)) {
+                errors.add("row " + row.rowNumber + ": no scenario test registered for Scenario Name \""
+                        + scenarioName + "\"");
             }
         }
         return errors;
+    }
+
+    private static boolean isMobile(String platform) {
+        String normalized = platform.trim().toLowerCase();
+        return "android".equals(normalized) || "ios".equals(normalized);
     }
 
     private static List<String> validateScenarioGrouping(List<FigmaRow> rows) {

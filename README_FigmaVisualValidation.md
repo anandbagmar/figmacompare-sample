@@ -11,7 +11,7 @@ stage, so there's no copying between stage-specific files.
 |---|---|
 | ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
 | ✅ Implemented | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
-| ✅ Implemented (Android; template for other apps/iOS) | `compareWithFigma` mobile path — [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
+| ✅ Implemented (Android; template for iOS) | `compareWithFigma` mobile path — [CompareAndroidWithFigma.java](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) runner + [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) scenario provider, see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
 ## Overview
 
@@ -34,7 +34,7 @@ flowchart TD
 
     V2{"<b>Step 4 · QA</b> runs<br/>./gradlew compareWebWithFigma /<br/>compareAndroidWithFigma<br/>─────────<br/>Pre-flight validation OK?"}
     V2fail["OUT: full list of problems<br/>printed, nothing runs"]
-    Compare["<b>Step 4 · QA</b> (automated)<br/>─────────<br/>IN: Excel from Step 3 + the live<br/>UAT/Prod app (web URLs, or<br/>Appium SCREEN_FLOWS for mobile)<br/>─────────<br/>DO: group rows by Scenario Name;<br/>Selenium (web) or Appium (mobile)<br/>runs each group as one test<br/>─────────<br/>OUT: Comparison Batch URL,<br/>Validation Status"]
+    Compare["<b>Step 4 · QA</b> (automated)<br/>─────────<br/>IN: Excel from Step 3 + the live<br/>UAT/Prod app (web URLs, or a<br/>registered mobile ScenarioFlow)<br/>─────────<br/>DO: group rows by Scenario Name;<br/>Selenium (web) or Appium (mobile)<br/>runs each group as one test<br/>─────────<br/>OUT: Comparison Batch URL,<br/>Validation Status"]
 
     S5["<b>Step 5 · UI/UX Team</b> (manual)<br/>─────────<br/>IN: Excel from Step 4 +<br/>Applitools dashboard<br/>─────────<br/>DO: review flagged differences<br/>with Visual AI<br/>─────────<br/>OUT: Jira issues for real<br/>discrepancies"]
 
@@ -55,8 +55,7 @@ flowchart TD
 - **UI/UX Team** — owns the Figma designs, prepares the initial Excel rows,
   reviews final visual differences, files Jira issues.
 - **QA** — runs both programs, fills in the `Locator` column for web components,
-  writes the small per-screen Appium navigation flows mobile rows need, and helps
-  triage failures.
+  writes the bespoke mobile scenario tests (see below), and helps triage failures.
 
 ## Single vs. multi-step tests ("scenarios")
 
@@ -65,19 +64,37 @@ Applitools test. But the Applitools Figma plugin also supports exporting several
 Figma frames together as the steps of **one** multi-step test (confirmed by
 inspecting its own network traffic: one `eyes.open()`, one match call per frame
 with its own step name, one close). This project supports the same thing via the
-`Scenario Name` column:
+`Scenario Name` column — but web and mobile treat it very differently:
 
-- Blank → the row stands alone (today's normal behavior).
-- A value shared by several **consecutive** rows → those rows become the ordered
-  steps of one Applitools test, named after the scenario. Order is exactly the
-  order the rows appear in the sheet.
+**Web — `Scenario Name` is optional.** A blank value means the row stands alone
+(today's normal behavior, fully generic). A value shared by several **consecutive**
+rows groups them into the ordered steps of one Applitools test. Either way,
+`BajajFinservWebTest` is the same generic code: it just does `driver.get()` +
+`check()` per row, in one continuous browser session for a scenario. No code to
+write, ever, for any web row.
 
-For web, this needs no extra code — `BajajFinservWebTest` just does `driver.get()`
-+ `check()` per row in a continuous browser session. For mobile, each step still
-runs through the same `SCREEN_FLOWS` registry as a standalone row would, just in
-one continuous app session across the whole scenario instead of relaunching
-between steps. See `BajajFinservAndroidTest`'s class comment for the rule this
-implies for how screen flows must be written.
+**Android/iOS — `Scenario Name` is required, always**, whether the row covers one
+Figma export or several. Reaching even a *single* mobile screen can need bespoke
+login or navigation, so there's no generic "just open this screen" runner for
+mobile the way there is for web — every mobile test is inherently a hand-written
+procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
+
+- [`CompareAndroidWithFigma`](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java)
+  is the **one** TestNG runner for every Android row, regardless of app.
+- It looks up each group's `Scenario Name` in
+  [`AndroidScenarioRegistry`](src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java)
+  — a shared, static registry that any class can register into.
+- App-specific classes like
+  [`BajajFinservAndroidTest`](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)
+  aren't TestNG tests themselves — they're **scenario providers**: their static
+  initializer registers `(scenarioName, apkPath, appName, ScenarioFlow)` tuples
+  into the registry. `CompareAndroidWithFigma` finds and runs whichever one
+  matches, launching the right app for it, **regardless of which class file
+  registered it**.
+- A `ScenarioFlow` owns its whole scenario: whatever login/navigation the real app
+  needs, then one `eyes.checkWindow(...)` call per step it wants recorded, in
+  whatever order makes sense for that flow. It is not a generic "look up a screen
+  and check it" function — it's the actual bespoke test.
 
 ## Pre-flight validation ("dry run")
 
@@ -88,14 +105,17 @@ problem found at once — nothing runs partially. Checks include:
 - `Figma URL` (with a `node-id`), `Platform` (`Web`/`Android`/`iOS`), and
   `App URL / Screen Name` present on every non-`Skip` row; `Viewport` (if set)
   matches `WIDTHxHEIGHT`.
+- **`Scenario Name` is required for every Android/iOS row** (see above) — a hard
+  error if it's blank.
 - **Scenario rows are contiguous** — a `Scenario Name` reused by non-adjacent rows
   is a hard error naming the offending row numbers.
 - **Scenario metadata is consistent** — `Baseline Env Name`/`App Name`/`Viewport`
   must agree across every row in a scenario; a hard error names the conflicting
   values and rows.
 - **Step names are unique within a scenario.**
-- For `compareAndroidWithFigma` specifically: every Android row's
-  `App URL / Screen Name` has a matching `SCREEN_FLOWS` entry.
+- For `compareAndroidWithFigma` specifically: every distinct `Scenario Name` used
+  by an Android row has a matching entry in `AndroidScenarioRegistry` (from
+  *any* provider class).
 
 This isn't a separate command — it's the first thing each of `uploadFromFigma`,
 `compareWebWithFigma`, and `compareAndroidWithFigma` does.
@@ -116,7 +136,7 @@ stage runs:
 | Column | Filled in by |
 |---|---|
 | `Figma URL`, `Platform`, `App URL / Screen Name` | Step 1 (UI/UX team) |
-| `Scenario Name` | Step 1, optional — groups this row with others sharing the same value into one multi-step test |
+| `Scenario Name` | Step 1 — **required for Android/iOS**; optional for Web (groups this row with others sharing the same value into one multi-step test) |
 | `Test Name`, `Baseline Env Name`, `Viewport`, `Scale`, `Format`, `Skip` | Step 1, optional — auto-derived by Step 2 if left blank |
 | `App Name`, `Baseline Batch URL`, `Status`, `Error Message` | Step 2 (`uploadFromFigma`) |
 | `Locator` | Step 3 (QA), web rows only |
@@ -133,7 +153,7 @@ for the full column reference. The columns worth calling out here:
 | `Figma URL` | Yes | Share link to a specific frame/component (must contain `node-id`) |
 | `Platform` | Yes | `Web`, `Android`, or `iOS` |
 | `App URL / Screen Name` | Yes | For `Web`: the UAT/production URL. For `Android`/`iOS`: a screen name/identifier — not a URL, since reaching a mobile screen usually needs app navigation |
-| `Scenario Name` | No | Shared by consecutive rows to group them into one multi-step test (see above). Leave blank for a standalone row |
+| `Scenario Name` | **Yes for Android/iOS**; optional for Web | Names the Applitools test this row belongs to. For mobile, must match a scenario registered in `AndroidScenarioRegistry` (ask QA to write one if it doesn't exist yet). For web, shared by consecutive rows to group them into one multi-step test; leave blank for a standalone row |
 | `Baseline Env Name` | No | Provide your own baseline env name, or leave blank to auto-derive `{testName}-baseline` (standalone) / `{scenarioName}-baseline` (scenario) |
 | `Skip` | No | `true`/`t`/`yes`/`y`/`skip` (case-insensitive) excludes this row from a run without removing it — useful for running only a subset |
 
@@ -145,7 +165,9 @@ For a standalone row, this is one Applitools test with one step. For a scenario,
 every row in the group is downloaded and uploaded as the steps of **one**
 Applitools test — `App Name`, `Baseline Env Name`, `Baseline Batch URL`, `Status`
 are written back onto every row in the group (they describe the one shared test,
-not the individual step).
+not the individual step). This step doesn't need `AndroidScenarioRegistry` at all —
+it just uploads whatever Figma images the sheet lists; only Step 4 needs a
+matching mobile scenario to actually be registered.
 
 ## Step 3 — Identify validation scope *(Manual — QA)*
 
@@ -156,9 +178,9 @@ open `Baseline Batch URL` and decide what should be validated:
   CSS/XPath selector to validate just that component against the Figma baseline.
   This applies per step in a scenario too — each step can independently be
   full-page or a specific component.
-- **Mobile rows**: always full-page — `Locator` is not used for Android/iOS. Instead,
-  make sure `App URL / Screen Name` unambiguously identifies the screen, since QA
-  will map it to an Appium flow in Step 4.
+- **Mobile rows**: always full-page — `Locator` is not used for Android/iOS. This
+  is also when QA should confirm (or write) the `ScenarioFlow` that `Scenario Name`
+  needs, if it doesn't already exist.
 
 ## Step 4 — Compare implementation against Figma baseline
 
@@ -186,33 +208,46 @@ file, and the suite fails there if anything mismatched. Run it with:
 ```
 See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details.
 
-**4b. Mobile rows — needs a per-screen Appium flow written by QA. ✅ Implemented for
-Android** as
-[BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java).
-Unlike a web URL, a mobile "screen name" can't be navigated to generically — reaching
-it usually requires login, menu navigation, or test data setup specific to that app. So
-this class is **one test class per app**, not one generic runner: it owns a small
-`SCREEN_FLOWS` registry mapping each distinct `App URL / Screen Name` value used by that
-app to a short Appium method that leaves the app on that screen. The data-driven test
-runs one invocation per group of `Platform=Android` rows; for each row/step in the
-group it looks up and runs the matching flow (in one continuous app session for a
-scenario, no relaunch between steps), then does the same Applitools comparison +
-Excel write-back as the web path. **Every `SCREEN_FLOWS` entry must be
-self-contained** — able to reach its target screen regardless of what ran before
-it — since the same entry may run standalone (fresh launch) or as any step of any
-scenario.
+**4b. Mobile rows — every test is bespoke, dispatched by Scenario Name. ✅
+Implemented for Android** via two kinds of class working together:
+
+- [`CompareAndroidWithFigma`](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) —
+  the **one runner**, used for every app. One invocation per group of
+  `Platform=Android` rows sharing a `Scenario Name`. It looks up that name in
+  `AndroidScenarioRegistry`, launches the registered APK, hands the group to the
+  registered `ScenarioFlow`, then does the Applitools comparison + Excel
+  write-back, same as the web path.
+- App-specific **scenario providers**, e.g.
+  [`BajajFinservAndroidTest`](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) —
+  not TestNG tests, just a static block registering that app's scenarios:
+  ```java
+  AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
+      // whatever this app's real login/navigation needs, then:
+      eyes.checkWindow(resolveStepName(rows.get(0)));
+  });
+  ```
+  A scenario is looked up purely by name — `CompareAndroidWithFigma` doesn't know
+  or care which provider class registered it, so a scenario referenced in the
+  Excel can be implemented in *any* class file.
+
 ```bash
 ./gradlew compareAndroidWithFigma
 ```
-A new Android/iOS app means a new test class following this same template — reusing the
-shared [AppiumServerSupport](src/test/java/io/samples/appium/AppiumServerSupport.java),
+
+A new app means: a new provider class following `BajajFinservAndroidTest`'s
+pattern, plus **one line** added to
+`AndroidScenarioRegistry.ensureAllProvidersRegistered()` so its registrations
+actually run (Java only executes a class's static initializer once that class is
+loaded/referenced — an unreferenced provider class would silently register
+nothing). `CompareAndroidWithFigma` itself never needs to change. Both kinds of
+class reuse the shared
+[AppiumServerSupport](src/test/java/io/samples/appium/AppiumServerSupport.java),
 [AndroidDriverFactory](src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
 [BatchSupport](src/test/java/io/samples/eyes/BatchSupport.java),
 [ComparisonResultRecorder](src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
 [FigmaExcelFile](src/test/java/io/samples/excel/FigmaExcelFile.java), and
-[FigmaValidation](src/test/java/io/samples/excel/FigmaValidation.java) utilities — only
-its `SCREEN_FLOWS` entries and Eyes configuration specifics need to be written from scratch.
-iOS has no equivalent driver factory/test class yet, but would follow the same pattern.
+[FigmaValidation](src/test/java/io/samples/excel/FigmaValidation.java) utilities.
+iOS has no equivalent runner/registry yet, but would follow the same pattern.
 
 ## Step 5 — Review and report *(UI/UX team will manually review the results)*
 
@@ -226,10 +261,11 @@ implementation bug. File a Jira issue directly from Applitools for valid discrep
 Steps 1–5 all have a working implementation or documented manual process for Web and
 Android. What's left:
 
-- **iOS**: no `AppiumDriver` factory or comparison test class yet — follow
-  `BajajFinservAndroidTest`'s template (own `SCREEN_FLOWS` registry + the shared
-  `AppiumServerSupport`/`BatchSupport`/`ComparisonResultRecorder`/`FigmaExcelFile`
-  utilities) once there's an iOS app and screens to validate.
-- **New apps/screens**: each new Android/iOS app needs its own test class copying
-  `BajajFinservAndroidTest`'s structure; each new screen just needs one more
-  `SCREEN_FLOWS` entry in the relevant app's test class.
+- **iOS**: no `AppiumDriver` factory, scenario registry, or runner yet — follow the
+  Android pattern (`IosScenarioRegistry` + a `CompareIosWithFigma` runner + per-app
+  provider classes) once there's an iOS app and screens to validate.
+- **New Android apps/scenarios**: each new app needs its own provider class
+  (following `BajajFinservAndroidTest`'s pattern) plus one line in
+  `AndroidScenarioRegistry.ensureAllProvidersRegistered()`; each new scenario is
+  one more `AndroidScenarioRegistry.register(...)` call in the relevant app's
+  provider class. `CompareAndroidWithFigma` itself never changes.
