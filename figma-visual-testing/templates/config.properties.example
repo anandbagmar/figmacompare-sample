@@ -13,3 +13,14 @@ FIGMA_EXCEL_FILE=
 # Leave blank to default to "Upload from Figma". Also overridable via an
 # APPLITOOLS_BATCH_NAME environment variable.
 APPLITOOLS_BATCH_NAME=
+# Optional: match level for compareWithFigma comparisons (any com.applitools.eyes.MatchLevel
+# value, e.g. STRICT, EXACT, LAYOUT, CONTENT - case-insensitive). Leave blank to default to
+# STRICT. An invalid value hard-fails immediately with the list of valid options.
+APPLITOOLS_MATCH_LEVEL=
+# Optional: Eyes branch/environment name used by the Android/iOS compareWithFigma paths.
+# Leave blank to default to "main" / "prod" respectively.
+APPLITOOLS_BRANCH_NAME=
+APPLITOOLS_ENVIRONMENT_NAME=
+# Optional: path to Appium's Node.js entrypoint, for a project layout where it isn't
+# vendored at the default ./node_modules/appium/build/lib/main.js.
+APPIUM_JS_PATH=
