@@ -1,7 +1,3 @@
-import org.codehaus.groovy.runtime.GStringImpl
-
-import java.text.SimpleDateFormat
-
 buildscript {
     ext {
         gradleVersion = '9.3.1'
@@ -12,138 +8,44 @@ buildscript {
 }
 
 plugins {
-    id "java"
     id "idea"
+    id "base"
 }
 version '0.0.1'
 
-repositories {
-    mavenLocal()
-    mavenCentral()
+// This is now a multi-module build: 'core' (the reusable framework, no TestNG, no
+// this-project-specific classes - see core/build.gradle) and 'samples' (this
+// project's actual usage of it - see samples/build.gradle for the real task
+// definitions). These root-level tasks are just aliases so existing commands like
+// `./gradlew uploadFromFigma` keep working without a ":samples:" prefix.
+task test {
+    group = "verification"
+    description = "Alias for :samples:test"
+    dependsOn ":samples:test"
 }
 
-compileJava { options.encoding = "UTF-8" }
-
-dependencies {
-    implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
-    implementation "com.applitools:eyes-images-java5:5.81.35"
-    implementation ("com.applitools:eyes-appium-java5:5.79.35") {
-        exclude group: 'io.appium', module: 'java-client'
-    }
-    implementation "io.appium:java-client:10.1.1"
-    implementation "org.testng:testng:7.12.0"
-    implementation 'org.nanohttpd:nanohttpd:2.3.1'
-    implementation 'com.googlecode.libphonenumber:libphonenumber:9.0.34'
-    implementation 'com.google.code.gson:gson:2.14.0'
-    implementation 'jaxen:jaxen:2.0.6'
-    implementation 'org.jsoup:jsoup:1.22.2'
-    implementation 'org.dom4j:dom4j:2.2.0'
-    implementation 'com.squareup.okhttp3:okhttp:5.4.0'
-    implementation 'org.apache.poi:poi-ooxml:5.4.0'
-    testImplementation 'org.testng:testng:7.12.0'
-}
-
-static def getCurrentDatestamp() {
-    Date today = new Date()
-    SimpleDateFormat df = new SimpleDateFormat("MM-dd-yyyy")
-    return df.format(today)
-}
-
-static def getCurrentTimestamp() {
-    Date today = new Date()
-    SimpleDateFormat df = new SimpleDateFormat("HH-mm-ss")
-    return df.format(today)
-}
-
-project.ext.logDir = "${rootDir}/reports/" + getCurrentDatestamp() + "/" + getCurrentTimestamp() as GStringImpl
-
-// Shared TestNG/logging/env setup applied to `test` and to each per-platform
-// compare*WithFigma task below, so they all behave consistently.
-ext.configureTestNGTask = { Test t ->
-    if (project.hasProperty("figmaExcel")) {
-        t.systemProperty "figmaExcel", project.property("figmaExcel")
-    }
-    t.doFirst {
-        environment "APPLITOOLS_DONT_CLOSE_BATCHES", "true"
-        environment "APPLITOOLS_LOG_DIR", "${project.logDir}/applitools_logs"
-        environment "LOG_DIR", "${project.logDir}"
-    }
-    t.useTestNG()
-    t.reports {
-        html.required.set(true)
-        junitXml.required.set(true)
-        html.outputLocation.set(file("$project.logDir/html"))
-        junitXml.outputLocation.set(file("$project.logDir/junit"))
-    }
-    t.reports.junitXml.outputPerTestCase(true)
-    t.testLogging {
-        events "started", "passed", "skipped", "failed"
-        // show standard out and standard error of the test JVM(s) on the console
-        showStandardStreams = true
-        // show full exception trace
-        exceptionFormat = 'full'
-        showStackTraces = true
-        showCauses = true
-        showExceptions = true
-    }
-    println("Log directory: ${project.logDir}")
-    println("Debug mode: " + System.getProperty('debug', 'false'))
-    // attach debugger
-    if (System.getProperty('debug', 'false') == 'true') {
-        println("In debug mode")
-        t.jvmArgs '-Xdebug', '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,' + 'address=*:5005'
-    }
-}
-
-test {
-    if (project.hasProperty("testClass")) {
-        def classFilePattern = project.property("testClass").toString().replace('.', '/') + ".class"
-        include classFilePattern
-        println("Running only test class include pattern: ${classFilePattern}")
-    }
-    configureTestNGTask(it)
-}
-
-task compareWebWithFigma(type: Test) {
+task uploadFromFigma {
     group = "applitools"
-    description = "Run compareWithFigma for Web rows in the shared Figma Excel file"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/web/selenium/BajajFinservWebTest.class"
-    configureTestNGTask(it)
+    description = "Alias for :samples:uploadFromFigma"
+    dependsOn ":samples:uploadFromFigma"
 }
 
-task compareAndroidWithFigma(type: Test) {
+task compareWebWithFigma {
     group = "applitools"
-    description = "Run compareWithFigma for Android rows in the shared Figma Excel file"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/appium/android/CompareAndroidWithFigma.class"
-    configureTestNGTask(it)
+    description = "Alias for :samples:compareWebWithFigma"
+    dependsOn ":samples:compareWebWithFigma"
 }
 
-task compareIosWithFigma(type: Test) {
+task compareAndroidWithFigma {
     group = "applitools"
-    description = "Run compareWithFigma for iOS rows in the shared Figma Excel file"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/appium/ios/CompareIosWithFigma.class"
-    configureTestNGTask(it)
+    description = "Alias for :samples:compareAndroidWithFigma"
+    dependsOn ":samples:compareAndroidWithFigma"
 }
 
-task uploadFromFigma(type: JavaExec) {
+task compareIosWithFigma {
     group = "applitools"
-    description = "Upload Figma designs listed in the shared Figma Excel file to Applitools as baselines"
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass.set("io.samples.UploadFromFigma")
-    doFirst {
-        if (project.hasProperty("figmaExcel")) {
-            systemProperty "figmaExcel", project.property("figmaExcel")
-        }
-        if (project.hasProperty("forceRefresh")) {
-            systemProperty "forceRefresh", project.property("forceRefresh")
-        }
-    }
+    description = "Alias for :samples:compareIosWithFigma"
+    dependsOn ":samples:compareIosWithFigma"
 }
 
 clean.doFirst {

@@ -21,7 +21,7 @@ export APPLITOOLS_API_KEY=<your-api-key>
 
 ### Choose a browser
 
-[Driver.java](../src/test/java/io/samples/web/selenium/Driver.java) creates a local
+[Driver.java](../core/src/main/java/io/samples/web/selenium/Driver.java) creates a local
 `WebDriver` for Chrome, Firefox, Edge, or Safari. It defaults to Chrome, or reads the
 `BROWSER` environment variable if set:
 
@@ -43,16 +43,18 @@ class and choosing **Run**.
 
 ## Example Test Source Files
 
-* [WebFigmaTest.java](../src/test/java/io/samples/web/selenium/WebFigmaTest.java) —
+* [WebFigmaTest.java](../samples/src/test/java/io/samples/web/selenium/WebFigmaTest.java) —
   uploads a locally-stored Figma export as the visual baseline via
-  [Baseline.java](../src/test/java/io/samples/Baseline.java), then opens the corresponding
+  [Baseline.java](../core/src/main/java/io/samples/Baseline.java), then opens the corresponding
   page with Selenium and runs a full-page Applitools Eyes comparison against it
   ```bash
   ./gradlew test -PtestClass=io.samples.web.selenium.WebFigmaTest
   ```
 
-* [BajajFinservWebTest.java](../src/test/java/io/samples/web/selenium/BajajFinservWebTest.java) —
-  the **web path of `compareWithFigma`** (see
+* [WebCompareRunner.java](../core/src/main/java/io/samples/web/selenium/WebCompareRunner.java)
+  (plain-Java orchestration, in `core`) +
+  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/samples/web/selenium/CompareWebWithFigmaTest.java)
+  (thin TestNG shim, in `samples`) — together the **web path of `compareWithFigma`** (see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
@@ -67,7 +69,8 @@ class and choosing **Run**.
   # or against a specific file:
   ./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
   ```
-  (`compareWebWithFigma` is a shortcut for `./gradlew test -PtestClass=io.samples.web.selenium.BajajFinservWebTest`,
+  (`compareWebWithFigma` is a shortcut for
+  `./gradlew test -PtestClass=io.samples.web.selenium.CompareWebWithFigmaTest`,
   which still works too if you want it.)
 
   One `VisualGridRunner` and one `BatchInfo` are shared across every group for the whole
@@ -80,7 +83,7 @@ class and choosing **Run**.
   fails there if any group had a visual difference.
 
 `WebFigmaTest` configures Eyes via its own per-test `VisualGridRunner` (it only ever
-runs one check, so that's fine); `BajajFinservWebTest` configures browsers/viewports
+runs one check, so that's fine); `WebCompareRunner` configures browsers/viewports
 via `config.addBrowser(...)` inside its shared `initialiseEyes(...)` method.
 
 ### Uploading a Figma design as the baseline
@@ -89,6 +92,6 @@ Instead of manually placing an image under `downloaded_images/` and calling
 `Baseline.uploadImageAndSetAsBaseline(...)` as `WebFigmaTest` currently does, you can
 upload Figma designs in bulk via the
 [uploadFromFigma](../README_uploadFromFigma.md) utility — its output Excel (with `Locator`
-filled in per row) is exactly what `BajajFinservWebTest` expects as input.
+filled in per row) is exactly what `CompareWebWithFigmaTest`/`WebCompareRunner` expects as input.
 
 Back to main [README](../README.md)

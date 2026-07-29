@@ -57,27 +57,30 @@ class and choosing **Run**.
 
 ### Android
 
-* [CalculatorTest.java](../src/test/java/io/samples/appium/android/CalculatorTest.java) — a
+* [CalculatorTest.java](../samples/src/test/java/io/samples/appium/android/CalculatorTest.java) — a
   basic native Android Appium test against the Calculator sample app, with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.android.CalculatorTest
   ```
 
-* [CalculatorFigmaTest.java](../src/test/java/io/samples/appium/android/CalculatorFigmaTest.java) —
+* [CalculatorFigmaTest.java](../samples/src/test/java/io/samples/appium/android/CalculatorFigmaTest.java) —
   same Calculator app test, but the visual baseline is uploaded from a locally-stored Figma
-  export via [Baseline.java](../src/test/java/io/samples/Baseline.java) before comparing
+  export via [Baseline.java](../core/src/main/java/io/samples/Baseline.java) before comparing
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.android.CalculatorFigmaTest
   ```
 
-* [CompareAndroidWithFigma.java](../src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) —
-  the **one runner** for the mobile (Android) path of `compareWithFigma`; see
+* [AndroidCompareRunner.java](../core/src/main/java/io/samples/appium/android/AndroidCompareRunner.java)
+  (plain-Java orchestration, in `core`) +
+  [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/samples/appium/android/CompareAndroidWithFigmaTest.java)
+  (thin TestNG shim, in `samples`) — together the **one runner** for the mobile
+  (Android) path of `compareWithFigma`; see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
-  the same shared Figma Excel file as `BajajFinservWebTest` (default
+  the same shared Figma Excel file as the web path (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
   one invocation per group of non-`Skip` `Platform=Android` rows sharing a `Scenario Name`
   (mandatory for every Android/iOS row — see below). For each group it looks up that
-  `Scenario Name` in [AndroidScenarioRegistry](../src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java),
+  `Scenario Name` in [AndroidScenarioRegistry](../core/src/main/java/io/samples/appium/android/AndroidScenarioRegistry.java),
   launches the registered app (APK), and runs the registered `ScenarioFlow` in one
   continuous app session (no relaunch between steps), then does an Applitools Eyes
   comparison against the group's `Baseline Env Name` baseline and writes
@@ -86,10 +89,11 @@ class and choosing **Run**.
   ```bash
   ./gradlew compareAndroidWithFigma
   ```
-  (a shortcut for `./gradlew test -PtestClass=io.samples.appium.android.CompareAndroidWithFigma`,
+  (a shortcut for
+  `./gradlew test -PtestClass=io.samples.appium.android.CompareAndroidWithFigmaTest`,
   which still works too if you want it.)
 
-* [BajajFinservAndroidTest.java](../src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) —
+* [BajajFinservAndroidTest.java](../samples/src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java) —
   **not a TestNG test itself** — a *scenario provider* for the Bajaj Finserv app
   (`app_npu_v8.3.17.apk`). Its static initializer registers this app's scenarios into
   `AndroidScenarioRegistry`:
@@ -104,58 +108,61 @@ class and choosing **Run**.
   `ScenarioFlow` must be **fully self-contained**: it owns the whole sequence for its
   scenario's rows (however many `eyes.checkWindow()` calls it makes, in whatever order),
   and it's looked up purely by `Scenario Name`, regardless of which class registered it —
-  `CompareAndroidWithFigma` doesn't know or care where a scenario came from.
+  `AndroidCompareRunner` doesn't know or care where a scenario came from.
 
   A new app means a new provider class following this same pattern, plus one line added to
-  `AndroidScenarioRegistry.ensureAllProvidersRegistered()` so its registrations actually run
-  (Java only executes a class's static initializer once that class is loaded/referenced).
-  `CompareAndroidWithFigma` itself never needs to change.
+  the `PROVIDER_CLASSES` list in `CompareAndroidWithFigmaTest` so its registrations
+  actually run (Java only executes a class's static initializer once that class is
+  loaded/referenced). `AndroidCompareRunner` itself never needs to change.
 
   Both classes reuse the shared
-  [AppiumServerSupport](../src/test/java/io/samples/appium/AppiumServerSupport.java),
-  [AndroidDriverFactory](../src/test/java/io/samples/appium/android/AndroidDriverFactory.java),
-  [BatchSupport](../src/test/java/io/samples/eyes/BatchSupport.java),
-  [ComparisonResultRecorder](../src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
-  [FigmaExcelFile](../src/test/java/io/samples/excel/FigmaExcelFile.java), and
-  [FigmaValidation](../src/test/java/io/samples/excel/FigmaValidation.java) utilities.
+  [AppiumServerSupport](../core/src/main/java/io/samples/appium/AppiumServerSupport.java),
+  [AndroidDriverFactory](../core/src/main/java/io/samples/appium/android/AndroidDriverFactory.java),
+  [BatchSupport](../core/src/main/java/io/samples/eyes/BatchSupport.java),
+  [ComparisonResultRecorder](../core/src/main/java/io/samples/eyes/ComparisonResultRecorder.java),
+  [FigmaExcelFile](../core/src/main/java/io/samples/excel/FigmaExcelFile.java), and
+  [FigmaValidation](../core/src/main/java/io/samples/excel/FigmaValidation.java) utilities.
 
   Two more scenario providers, for the "App Automation Playground" demo app
   (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
   scenario side by side:
-  [AppAutomationPlaygroundAndroidHomeTest.java](../src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
+  [AppAutomationPlaygroundAndroidHomeTest.java](../samples/src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../samples/src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (4-screen Community Meeting Planner flow).
 
 ### iOS
 
-* [HelloWorldTest.java](../src/test/java/io/samples/appium/ios/HelloWorldTest.java) — a basic
+* [HelloWorldTest.java](../samples/src/test/java/io/samples/appium/ios/HelloWorldTest.java) — a basic
   native iOS Appium test (`HelloWorldiOS.app`) with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.ios.HelloWorldTest
   ```
 
-* [WebiOSHelloWorldTest.java](../src/test/java/io/samples/appium/ios/WebiOSHelloWorldTest.java) —
+* [WebiOSHelloWorldTest.java](../samples/src/test/java/io/samples/appium/ios/WebiOSHelloWorldTest.java) —
   an Appium test that drives Safari on an iOS Simulator (mobile web), with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.samples.appium.ios.WebiOSHelloWorldTest
   ```
 
-* [CompareIosWithFigma.java](../src/test/java/io/samples/appium/ios/CompareIosWithFigma.java) —
-  the **one runner** for the mobile (iOS) path of `compareWithFigma`, mirroring
-  `CompareAndroidWithFigma` exactly (see the Android section above and
+* [IosCompareRunner.java](../core/src/main/java/io/samples/appium/ios/IosCompareRunner.java)
+  (plain-Java orchestration, in `core`) +
+  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/samples/appium/ios/CompareIosWithFigmaTest.java)
+  (thin TestNG shim, in `samples`) — together the **one runner** for the mobile (iOS)
+  path of `compareWithFigma`, mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest`
+  exactly (see the Android section above and
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)): one
   invocation per group of `Platform=iOS` rows sharing a `Scenario Name`, dispatched
-  through [IosScenarioRegistry](../src/test/java/io/samples/appium/ios/IosScenarioRegistry.java)
+  through [IosScenarioRegistry](../core/src/main/java/io/samples/appium/ios/IosScenarioRegistry.java)
   regardless of which provider class registered the scenario.
   ```bash
   ./gradlew compareIosWithFigma
   ```
   Scenario providers register a `.app` bundle path (not a `.zip` — unzip it once
   under `sampleApps/`) instead of an APK:
-  [AppAutomationPlaygroundIosHomeTest.java](../src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
+  [AppAutomationPlaygroundIosHomeTest.java](../samples/src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
+  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../samples/src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
   (4-screen flow) — the iOS counterparts of the Android providers above, using the
   same accessibility identifiers (this app is built as a deliberate cross-platform
   automation demo sharing testIDs between platforms).

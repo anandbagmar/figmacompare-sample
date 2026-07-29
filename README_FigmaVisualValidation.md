@@ -10,8 +10,8 @@ stage, so there's no copying between stage-specific files.
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
-| ✅ Implemented | `compareWithFigma` web path — [BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
-| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — [CompareAndroidWithFigma.java](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) / [CompareIosWithFigma.java](src/test/java/io/samples/appium/ios/CompareIosWithFigma.java) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
+| ✅ Implemented | `compareWithFigma` web path — [WebCompareRunner.java](core/src/main/java/io/samples/web/selenium/WebCompareRunner.java) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/samples/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
+| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — [AndroidCompareRunner.java](core/src/main/java/io/samples/appium/android/AndroidCompareRunner.java) / [IosCompareRunner.java](core/src/main/java/io/samples/appium/ios/IosCompareRunner.java) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
 ## Overview
 
@@ -69,7 +69,7 @@ with its own step name, one close). This project supports the same thing via the
 **Web — `Scenario Name` is optional.** A blank value means the row stands alone
 (today's normal behavior, fully generic). A value shared by several **consecutive**
 rows groups them into the ordered steps of one Applitools test. Either way,
-`BajajFinservWebTest` is the same generic code: it just does `driver.get()` +
+`WebCompareRunner` is the same generic code: it just does `driver.get()` +
 `check()` per row, in one continuous browser session for a scenario. No code to
 write, ever, for any web row.
 
@@ -79,16 +79,19 @@ login or navigation, so there's no generic "just open this screen" runner for
 mobile the way there is for web — every mobile test is inherently a hand-written
 procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
 
-- [`CompareAndroidWithFigma`](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java)
-  is the **one** TestNG runner for every Android row, regardless of app.
+- [`AndroidCompareRunner`](core/src/main/java/io/samples/appium/android/AndroidCompareRunner.java)
+  (plain-Java, in `core`), driven by
+  [`CompareAndroidWithFigmaTest`](samples/src/test/java/io/samples/appium/android/CompareAndroidWithFigmaTest.java)
+  (thin TestNG shim, in `samples`), is the **one** runner for every Android row,
+  regardless of app.
 - It looks up each group's `Scenario Name` in
-  [`AndroidScenarioRegistry`](src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java)
+  [`AndroidScenarioRegistry`](core/src/main/java/io/samples/appium/android/AndroidScenarioRegistry.java)
   — a shared, static registry that any class can register into.
 - App-specific classes like
-  [`BajajFinservAndroidTest`](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)
+  [`BajajFinservAndroidTest`](samples/src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)
   aren't TestNG tests themselves — they're **scenario providers**: their static
   initializer registers `(scenarioName, apkPath, appName, ScenarioFlow)` tuples
-  into the registry. `CompareAndroidWithFigma` finds and runs whichever one
+  into the registry. `AndroidCompareRunner` finds and runs whichever one
   matches, launching the right app for it, **regardless of which class file
   registered it**.
 - A `ScenarioFlow` owns its whole scenario: whatever login/navigation the real app
@@ -191,14 +194,16 @@ the same file, in place — plus a final pass/fail summary. For a scenario, one
 result is written onto every row in that group, since it's one Applitools test.
 
 **4a. Web rows — fully generic. ✅ Implemented** as
-[BajajFinservWebTest.java](src/test/java/io/samples/web/selenium/BajajFinservWebTest.java):
-a TestNG test, data-driven from the shared Excel file, one invocation per group of
-`Platform=Web` rows (a standalone row is a group of one). Selenium opens
-`App URL / Screen Name` directly for each row/step in the group, in the same
-continuous browser session — no per-row code needed even for a multi-step
+[WebCompareRunner.java](core/src/main/java/io/samples/web/selenium/WebCompareRunner.java)
+(plain-Java, in `core`) driven by
+[CompareWebWithFigmaTest.java](samples/src/test/java/io/samples/web/selenium/CompareWebWithFigmaTest.java)
+(thin TestNG shim, in `samples`): data-driven from the shared Excel file, one
+invocation per group of `Platform=Web` rows (a standalone row is a group of one).
+Selenium opens `App URL / Screen Name` directly for each row/step in the group, in
+the same continuous browser session — no per-row code needed even for a multi-step
 scenario. Full page if `Locator` is blank, otherwise just that region. One
 `VisualGridRunner`/`BatchInfo` pair is shared for the whole run, so groups just
-submit their checks; results are collected once at the end (`@AfterSuite`),
+submit their checks; results are collected once at the end (`afterSuite()`),
 matched back to each group's rows by test/scenario name, written to the Excel
 file, and the suite fails there if anything mismatched. Run it with:
 ```bash
@@ -212,9 +217,10 @@ See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details.
 Implemented for Android and iOS** via two kinds of class working together, per
 platform:
 
-- One **runner**, used for every app on that platform:
-  [`CompareAndroidWithFigma`](src/test/java/io/samples/appium/android/CompareAndroidWithFigma.java) /
-  [`CompareIosWithFigma`](src/test/java/io/samples/appium/ios/CompareIosWithFigma.java).
+- One **runner** (plain-Java orchestration in `core` + a thin TestNG shim in
+  `samples`), used for every app on that platform:
+  [`AndroidCompareRunner`](core/src/main/java/io/samples/appium/android/AndroidCompareRunner.java) /
+  [`IosCompareRunner`](core/src/main/java/io/samples/appium/ios/IosCompareRunner.java).
   One invocation per group of `Platform=Android`/`iOS` rows sharing a
   `Scenario Name`. It looks up that name in
   `AndroidScenarioRegistry`/`IosScenarioRegistry`, launches the registered app
@@ -222,11 +228,11 @@ platform:
   the Applitools comparison + Excel write-back, same as the web path.
 - App-specific **scenario providers** — not TestNG tests, just a static block
   registering that app's scenarios, e.g.
-  [`BajajFinservAndroidTest`](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)
+  [`BajajFinservAndroidTest`](samples/src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java)
   or
-  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](samples/src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (with an iOS counterpart,
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
+  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
   ```java
   AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
       // whatever this app's real login/navigation needs, then:
@@ -243,19 +249,18 @@ platform:
 ```
 
 A new app means: a new provider class following the existing pattern for that
-platform, plus **one line** added to
-`AndroidScenarioRegistry.ensureAllProvidersRegistered()` /
-`IosScenarioRegistry.ensureAllProvidersRegistered()` so its registrations
+platform, plus **one line** added to the `PROVIDER_CLASSES` list in
+`CompareAndroidWithFigmaTest` / `CompareIosWithFigmaTest` so its registrations
 actually run (Java only executes a class's static initializer once that class is
 loaded/referenced — an unreferenced provider class would silently register
 nothing). The runner itself never needs to change. All of these reuse the shared
-[AppiumServerSupport](src/test/java/io/samples/appium/AppiumServerSupport.java),
-[AndroidDriverFactory](src/test/java/io/samples/appium/android/AndroidDriverFactory.java) /
-[IosDriverFactory](src/test/java/io/samples/appium/ios/IosDriverFactory.java),
-[BatchSupport](src/test/java/io/samples/eyes/BatchSupport.java),
-[ComparisonResultRecorder](src/test/java/io/samples/eyes/ComparisonResultRecorder.java),
-[FigmaExcelFile](src/test/java/io/samples/excel/FigmaExcelFile.java), and
-[FigmaValidation](src/test/java/io/samples/excel/FigmaValidation.java) utilities.
+[AppiumServerSupport](core/src/main/java/io/samples/appium/AppiumServerSupport.java),
+[AndroidDriverFactory](core/src/main/java/io/samples/appium/android/AndroidDriverFactory.java) /
+[IosDriverFactory](core/src/main/java/io/samples/appium/ios/IosDriverFactory.java),
+[BatchSupport](core/src/main/java/io/samples/eyes/BatchSupport.java),
+[ComparisonResultRecorder](core/src/main/java/io/samples/eyes/ComparisonResultRecorder.java),
+[FigmaExcelFile](core/src/main/java/io/samples/excel/FigmaExcelFile.java), and
+[FigmaValidation](core/src/main/java/io/samples/excel/FigmaValidation.java) utilities.
 
 ## Step 5 — Review and report *(UI/UX team will manually review the results)*
 
@@ -287,7 +292,7 @@ implementation bug. File a Jira issue directly from Applitools for valid discrep
 Example: adding a new screen/flow to the Bajaj Finserv app.
 
 1. Open that app's provider class,
-   [BajajFinservAndroidTest.java](src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java).
+   [BajajFinservAndroidTest.java](samples/src/test/java/io/samples/appium/android/BajajFinservAndroidTest.java).
 2. Add a new registration in its static block:
    ```java
    AndroidScenarioRegistry.register("your-new-scenario-name", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
@@ -304,34 +309,34 @@ Example: adding a new screen/flow to the Bajaj Finserv app.
 
 ### D. A brand-new Android app — one new class + one registry line
 
-1. Create a new provider class under `src/test/java/io/samples/appium/android/`,
+1. Create a new provider class under `samples/src/test/java/io/samples/appium/android/`,
    copying `BajajFinservAndroidTest.java`'s shape (private constructor, `APP_NAME`/
    `APK_NAME` constants, a static block calling `AndroidScenarioRegistry.register(...)`
    for each of that app's scenarios).
 2. Add its `.apk` under `sampleApps/`.
-3. Add **one line** to
-   `AndroidScenarioRegistry.ensureAllProvidersRegistered()` (in
-   [AndroidScenarioRegistry.java](src/test/java/io/samples/appium/android/AndroidScenarioRegistry.java))
+3. Add **one line** to the `PROVIDER_CLASSES` list in
+   [CompareAndroidWithFigmaTest.java](samples/src/test/java/io/samples/appium/android/CompareAndroidWithFigmaTest.java)
    loading your new class — without this, its static block (and therefore its
    registrations) never runs.
 4. Add Excel rows (`Platform=Android`, `Scenario Name` matching what you registered).
 5. `./gradlew uploadFromFigma`, then `./gradlew compareAndroidWithFigma`.
 
-`CompareAndroidWithFigma.java` itself never needs to change for C or D — it only
+`AndroidCompareRunner.java` itself never needs to change for C or D — it only
 ever looks things up by `Scenario Name` in the shared registry.
 
 ### E. iOS — same as C/D, using the iOS equivalents
 
 iOS mirrors Android exactly:
-[`IosScenarioRegistry`](src/test/java/io/samples/appium/ios/IosScenarioRegistry.java),
-[`CompareIosWithFigma`](src/test/java/io/samples/appium/ios/CompareIosWithFigma.java), and
-[`IosDriverFactory`](src/test/java/io/samples/appium/ios/IosDriverFactory.java) —
+[`IosScenarioRegistry`](core/src/main/java/io/samples/appium/ios/IosScenarioRegistry.java),
+[`IosCompareRunner`](core/src/main/java/io/samples/appium/ios/IosCompareRunner.java), and
+[`IosDriverFactory`](core/src/main/java/io/samples/appium/ios/IosDriverFactory.java) —
 follow steps C/D above but:
-- create your provider class under `src/test/java/io/samples/appium/ios/` (e.g.
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)),
+- create your provider class under `samples/src/test/java/io/samples/appium/ios/` (e.g.
+  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/samples/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)),
 - register into `IosScenarioRegistry` with an app **path** (a `.app` bundle
   directory under `sampleApps/`, not a `.zip` — unzip it once) instead of an APK,
-- add your class to `IosScenarioRegistry.ensureAllProvidersRegistered()`,
+- add your class to the `PROVIDER_CLASSES` list in
+  [CompareIosWithFigmaTest.java](samples/src/test/java/io/samples/appium/ios/CompareIosWithFigmaTest.java),
 - use `Platform=iOS` in the Excel,
 - run `./gradlew compareIosWithFigma` instead of `compareAndroidWithFigma`.
 
@@ -360,8 +365,8 @@ framework, just porting your existing interaction code into a `ScenarioFlow`.
 5. `config.properties` already set up (Figma token, Applitools creds) — same as
    everywhere else in this repo.
 6. **One known gap to check first:**
-   [`AndroidDriverFactory`](src/test/java/io/samples/appium/android/AndroidDriverFactory.java)/
-   [`IosDriverFactory`](src/test/java/io/samples/appium/ios/IosDriverFactory.java)
+   [`AndroidDriverFactory`](core/src/main/java/io/samples/appium/android/AndroidDriverFactory.java)/
+   [`IosDriverFactory`](core/src/main/java/io/samples/appium/ios/IosDriverFactory.java)
    currently only take `(apkPath/appPath, fullReset)` — a fixed, minimal
    capability set. If your app needs extra Appium capabilities, or your
    comparisons need different Eyes config (batch/match-level/etc. are currently
@@ -371,8 +376,9 @@ framework, just porting your existing interaction code into a `ScenarioFlow`.
 **Steps** — same as C/D: create one provider class per app (or scenario), port
 your interaction code into its `ScenarioFlow`, calling `eyes.checkWindow(...)`
 once per Figma row you want checked, in the same order those rows appear in the
-Excel; add one line to the registry's `ensureAllProvidersRegistered()`; add the
+Excel; add one line to that platform's `CompareAndroidWithFigmaTest`/
+`CompareIosWithFigmaTest` `PROVIDER_CLASSES` list; add the
 matching Excel rows; run `uploadFromFigma` then `compareAndroidWithFigma`/
 `compareIosWithFigma`. See
-[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](samples/src/test/java/io/samples/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
 for a worked multi-step example ported from real app exploration.

@@ -6,13 +6,6 @@ import java.util.Map;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
 
 import com.applitools.eyes.AccessibilityGuidelinesVersion;
 import com.applitools.eyes.AccessibilityLevel;
@@ -38,27 +31,19 @@ import io.samples.excel.FigmaRow;
 import io.samples.excel.FigmaValidation;
 
 /**
- * Web path of the compareWithFigma step described in README_FigmaVisualValidation.md:
- * for every "Web" platform row in the shared Figma Excel file, opens "App URL / Screen
- * Name" with Selenium and compares it against the Figma baseline uploaded by
- * uploadFromFigma, using "Locator" (if present) to scope the check to a single component
- * instead of the full page. Results (Comparison Batch URL, Validation Status) are
- * written back to the same file in place, plus a pass/fail summary. Rows with "Skip" set
- * are left untouched and not processed.
- *
- * Rows sharing the same non-blank "Scenario Name" (consecutively, in sheet order) run as
- * one multi-step test in a single continuous browser session: one eyes.open(), one
- * driver.get()+check() per row/step, one close(). A standalone row (blank Scenario Name)
- * is just a scenario of one step - there's a single code path for both cases, since
- * Selenium can navigate to any URL directly whether it's one step or several (unlike
- * mobile, see BajajFinservAndroidTest for why that needs one test per app instead).
+ * Plain-Java orchestration for the web path of compareWithFigma - mirrors
+ * AndroidCompareRunner.java/IosCompareRunner.java in spirit, but web has no scenario
+ * registry: any "App URL / Screen Name" can be navigated to directly with Selenium, so
+ * there's nothing to look up before running a group (see the CompareWebWithFigmaTest
+ * javadoc in the samples module for how rows/groups/steps work). No TestNG (or any other
+ * test framework) dependency.
  *
  * One VisualGridRunner and one BatchInfo are shared for the whole run (creating one per
  * group would repeatedly start/stop the Ultrafast Grid's background process and hang).
  * Because of that, groups only submit their checks via closeAsync() - actual results are
- * collected once, in @AfterSuite, and matched back to each group's rows by test name.
+ * collected once, in afterSuite(), and matched back to each group's rows by test name.
  */
-public class BajajFinservWebTest {
+public class WebCompareRunner {
 
     private static final String DEFAULT_APP_NAME = "Applitools-Images";
     private static final RectangleSize DEFAULT_VIEWPORT = new RectangleSize(1280, 1024);
@@ -74,18 +59,21 @@ public class BajajFinservWebTest {
 
     private WebDriver driver;
 
-    @BeforeSuite
     public static void beforeSuite() {
         visualGridRunner = new VisualGridRunner(new RunnerOptions().testConcurrency(10));
         visualGridRunner.setDontCloseBatches(true);
         batchInfo = BatchSupport.createBatch(DEFAULT_APP_NAME, userName);
     }
 
-    @AfterSuite
-    public static void afterSuite() {
+    /**
+     * Collects the results of every group submitted via compareGroup(), writes them back
+     * to the Excel file, and returns whether every group passed. Returns true (no-op) if
+     * loadWebGroups() was never called or found nothing to do.
+     */
+    public static boolean afterSuite() {
         try {
             if (null == webGroups || webGroups.isEmpty()) {
-                return;
+                return true;
             }
             Map<String, List<FigmaRow>> rowsByTestName = new LinkedHashMap<>();
             for (List<FigmaRow> group : webGroups) {
@@ -101,71 +89,35 @@ public class BajajFinservWebTest {
             System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
                     + figmaExcelPath);
 
-            Assert.assertTrue(isPass, "Visual differences found - see " + figmaExcelPath + " for details.");
+            return isPass;
         } finally {
             BatchSupport.closeBatch(batchInfo);
             visualGridRunner.close();
         }
     }
 
-    @DataProvider(name = "webGroups")
-    public static Object[][] webGroups() {
-        figmaExcelPath = FigmaExcelFile.resolvePath(System.getProperty("figmaExcel"));
+    public static List<List<FigmaRow>> loadWebGroups(String figmaExcelPathOverride) {
+        figmaExcelPath = FigmaExcelFile.resolvePath(figmaExcelPathOverride);
         allRows = ExcelHelper.readRows(figmaExcelPath);
         FigmaValidation.throwIfAny(FigmaValidation.validate(allRows));
 
         List<FigmaRow> webRows = FigmaExcelFile.filterByPlatform(allRows, "web");
         webGroups = FigmaExcelFile.groupContiguous(webRows);
-
-        Object[][] data = new Object[webGroups.size()][1];
-        for (int i = 0; i < webGroups.size(); i++) {
-            data[i][0] = webGroups.get(i);
-        }
-        return data;
+        return webGroups;
     }
 
-    @BeforeMethod
-    public void beforeMethod() {
+    public void createDriver() {
         driver = Driver.createDriverFor("chrome");
     }
 
-    @AfterMethod
-    public void afterMethod() {
+    public void quitDriver() {
         if (null != driver) {
             driver.quit();
         }
     }
 
-    private Eyes initialiseEyes(String appName, String baselineName, RectangleSize viewportSize) {
-        Eyes eyes = new Eyes(visualGridRunner);
-        Configuration config = new Configuration();
-        config.setHostOS(System.getProperty("os.name"));
-        config.setAppName(appName);
-        config.setBaselineEnvName(baselineName);
-        config.setApiKey(APPLITOOLS_API_KEY);
-        config.setBatch(batchInfo);
-        config.setIsDisabled(Boolean.FALSE);
-        config.setForceFullPageScreenshot(true);
-        config.setStitchMode(StitchMode.CSS);
-        config.setSaveNewTests(Boolean.FALSE);
-        config.setMatchLevel(MatchLevel.STRICT);
-        config.addProperty("username", userName);
-        config.setIgnoreDisplacements(true);
-        config.setAccessibilityValidation(
-                new AccessibilitySettings(AccessibilityLevel.AA, AccessibilityGuidelinesVersion.WCAG_2_1));
-
-        // Match the Figma baseline's viewport size, so the Visual Grid renders the
-        // checkpoint at the same size instead of a fixed default.
-        config.addBrowser(viewportSize.getWidth(), viewportSize.getHeight(), BrowserType.CHROME);
-
-        eyes.setConfiguration(config);
-        eyes.setLogHandler(new StdoutLogHandler(true));
-
-        return eyes;
-    }
-
-    @Test(dataProvider = "webGroups")
-    void compareWebGroupWithFigmaBaseline(List<FigmaRow> group) {
+    /** Runs the group's steps and submits the check asynchronously (see class comment). */
+    public void compareGroup(List<FigmaRow> group) {
         FigmaRow firstRow = group.get(0);
         String appName = isBlank(firstRow.appName) ? DEFAULT_APP_NAME : firstRow.appName;
         String scenarioTestName = resolveScenarioTestName(group);
@@ -198,6 +150,34 @@ public class BajajFinservWebTest {
             eyesSelenium.abortIfNotClosed();
             throw ex;
         }
+    }
+
+    private Eyes initialiseEyes(String appName, String baselineName, RectangleSize viewportSize) {
+        Eyes eyes = new Eyes(visualGridRunner);
+        Configuration config = new Configuration();
+        config.setHostOS(System.getProperty("os.name"));
+        config.setAppName(appName);
+        config.setBaselineEnvName(baselineName);
+        config.setApiKey(APPLITOOLS_API_KEY);
+        config.setBatch(batchInfo);
+        config.setIsDisabled(Boolean.FALSE);
+        config.setForceFullPageScreenshot(true);
+        config.setStitchMode(StitchMode.CSS);
+        config.setSaveNewTests(Boolean.FALSE);
+        config.setMatchLevel(MatchLevel.STRICT);
+        config.addProperty("username", userName);
+        config.setIgnoreDisplacements(true);
+        config.setAccessibilityValidation(
+                new AccessibilitySettings(AccessibilityLevel.AA, AccessibilityGuidelinesVersion.WCAG_2_1));
+
+        // Match the Figma baseline's viewport size, so the Visual Grid renders the
+        // checkpoint at the same size instead of a fixed default.
+        config.addBrowser(viewportSize.getWidth(), viewportSize.getHeight(), BrowserType.CHROME);
+
+        eyes.setConfiguration(config);
+        eyes.setLogHandler(new StdoutLogHandler(true));
+
+        return eyes;
     }
 
     private static String resolveScenarioTestName(List<FigmaRow> group) {

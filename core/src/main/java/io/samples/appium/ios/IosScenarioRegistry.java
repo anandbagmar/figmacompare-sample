@@ -8,8 +8,9 @@ import io.samples.appium.ScenarioFlow;
 
 /**
  * Central lookup of every iOS "Scenario Name" -> the app (.app bundle) and ScenarioFlow
- * that implement it, regardless of which test class registered it. Mirrors
- * AndroidScenarioRegistry - see its class comment for the full rationale.
+ * that implement it, regardless of which class registered it or which module that class
+ * lives in. Mirrors AndroidScenarioRegistry - see its class comment for the full
+ * rationale.
  */
 public class IosScenarioRegistry {
 
@@ -35,17 +36,13 @@ public class IosScenarioRegistry {
     }
 
     /**
-     * Every class that registers iOS scenarios must be listed here, so its static
-     * initializer actually runs before a test run looks its scenarios up - see
-     * AndroidScenarioRegistry.ensureAllProvidersRegistered() for why. Add one line here
-     * for every new iOS app test/provider class.
+     * Loads (and so triggers the static initializer / registrations of) a provider class
+     * by name. core deliberately does NOT maintain a list of provider classes to load -
+     * see AndroidScenarioRegistry.loadProviderClass() for the full rationale. Each
+     * consumer owns its own bootstrap that calls this once per provider class it wants
+     * active before a test run looks scenarios up.
      */
-    public static void ensureAllProvidersRegistered() {
-        loadClass("io.samples.appium.ios.AppAutomationPlaygroundIosHomeTest");
-        loadClass("io.samples.appium.ios.AppAutomationPlaygroundIosPlannerScenarioTest");
-    }
-
-    private static void loadClass(String className) {
+    public static void loadProviderClass(String className) {
         try {
             Class.forName(className);
         } catch (ClassNotFoundException ex) {

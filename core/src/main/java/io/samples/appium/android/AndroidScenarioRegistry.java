@@ -8,11 +8,10 @@ import io.samples.appium.ScenarioFlow;
 
 /**
  * Central lookup of every Android "Scenario Name" -> the app (APK) and ScenarioFlow that
- * implement it, regardless of which test class registered it. A Scenario Name used in the
- * shared Figma Excel file can be implemented in any class - CompareAndroidWithFigma is the
- * one runner that finds and executes it by name, so app-specific classes (like
- * BajajFinservAndroidTest) only need to register their scenarios here, not run their own
- * TestNG suite.
+ * implement it, regardless of which class registered it or which module that class lives
+ * in. A consumer's own runner looks a scenario up purely by name - this registry doesn't
+ * know or care where it was registered from, so a scenario provider can live in this
+ * project's samples module, or in a completely separate consuming project/repo.
  */
 public class AndroidScenarioRegistry {
 
@@ -38,19 +37,14 @@ public class AndroidScenarioRegistry {
     }
 
     /**
-     * Every class that registers Android scenarios must be listed here, so its static
-     * initializer actually runs (and its scenarios get registered) before a test run looks
-     * them up - Java only runs a class's static initializer once that class has been
-     * loaded/referenced, so an unreferenced provider class would otherwise never register
-     * anything. Add one line here for every new Android app test/provider class.
+     * Loads (and so triggers the static initializer / registrations of) a provider class
+     * by name. core deliberately does NOT maintain a list of provider classes to load -
+     * it can't know about classes that live in a consumer's own module. Each consumer
+     * owns its own bootstrap that calls this once per provider class it wants active
+     * before a test run looks scenarios up - see CompareAndroidWithFigmaTest in the
+     * samples module for the pattern.
      */
-    public static void ensureAllProvidersRegistered() {
-        loadClass("io.samples.appium.android.BajajFinservAndroidTest");
-        loadClass("io.samples.appium.android.AppAutomationPlaygroundAndroidHomeTest");
-        loadClass("io.samples.appium.android.AppAutomationPlaygroundAndroidPlannerScenarioTest");
-    }
-
-    private static void loadClass(String className) {
+    public static void loadProviderClass(String className) {
         try {
             Class.forName(className);
         } catch (ClassNotFoundException ex) {
