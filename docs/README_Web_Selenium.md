@@ -2,6 +2,15 @@ Back to main [README](../README.md)
 
 # Running web tests with Selenium
 
+## Table of contents
+
+- [Usage](#usage)
+  - [Set your APPLITOOLS_API_KEY](#set-your-applitools_api_key)
+  - [Choose a browser](#choose-a-browser)
+  - [Launch the tests](#launch-the-tests)
+- [Example Test Source Files](#example-test-source-files)
+  - [Uploading a Figma design as the baseline](#uploading-a-figma-design-as-the-baseline)
+
 ## Usage
 
 These tests drive a browser with Selenium and use the Applitools Eyes Selenium SDK

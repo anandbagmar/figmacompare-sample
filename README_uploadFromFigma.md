@@ -11,6 +11,19 @@ This is step 2 of the full workflow — see
 [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md) for how this fits
 together with the manual review steps and the `compareWithFigma` comparison programs.
 
+## Table of contents
+
+- [Quick start](#quick-start)
+- [1. One-time setup](#1-one-time-setup)
+  - [1.1 Get a Figma personal access token](#11-get-a-figma-personal-access-token)
+  - [1.2 Get your Applitools API key and server URL](#12-get-your-applitools-api-key-and-server-url)
+  - [1.3 Fill in `config.properties`](#13-fill-in-configproperties)
+- [2. Fill in the Figma Excel file](#2-fill-in-the-figma-excel-file)
+- [3. Run the program](#3-run-the-program)
+  - [Choosing the Excel file path](#choosing-the-excel-file-path)
+- [4. Check the results](#4-check-the-results)
+- [Notes](#notes)
+
 ## Quick start
 
 Templates live in **[figma-visual-testing/templates/](figma-visual-testing/templates/)**

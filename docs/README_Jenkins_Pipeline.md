@@ -1,5 +1,13 @@
 # Jenkins Pipeline Setup
 
+## Table of contents
+
+- [Step 1 - Create a new job](#step-1---create-a-new-job)
+- [Step 2 - Create a new job](#step-2---create-a-new-job)
+- [Step 3 - Configure job](#step-3---configure-job--)
+  - [General section](#general-section)
+  - [Pipeline section](#pipeline-section)
+
 ### Step 1 - Create a new job
 
 Create a new job 

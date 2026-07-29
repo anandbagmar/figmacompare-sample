@@ -2,6 +2,18 @@ Back to main [README](../README.md)
 
 # Running tests with Appium-Java
 
+## Table of contents
+
+- [Setup Appium server](#setup-appium-server)
+- [Start the Emulator](#start-the-emulator)
+- [Usage](#usage)
+  - [Set your APPLITOOLS_API_KEY](#set-your-applitools_api_key)
+  - [Install the example application](#install-the-example-application)
+  - [Launch the tests](#launch-the-tests)
+- [Example Test Source Files](#example-test-source-files)
+  - [Android](#android)
+  - [iOS](#ios)
+
 ## [Setup Appium server](README_MachineSetupInstructions.md)
 
 ## [Start the Emulator](README_MachineSetupInstructions.md)

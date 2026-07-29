@@ -20,6 +20,15 @@ This lets the UI/UX team (who own the Figma designs) and the QA team (who own th
 Selenium/Appium automation) collaborate on catching design-vs-implementation drift,
 without either side needing to touch the other's tooling.
 
+## Table of contents
+
+- [Full step-by-step workflow: Figma → baseline → compare → review](#full-step-by-step-workflow-figma--baseline--compare--review)
+- [Setup instructions](#setup-instructions)
+- [Running the Appium (Android/iOS) tests](#running-the-appium-androidios-tests)
+- [Running the web tests with Selenium](#running-the-web-tests-with-selenium)
+- [Running the Appium-Java tests in local Jenkins](#running-the-appium-java-tests-in-local-jenkins)
+- [Uploading Figma designs as Applitools baselines](#uploading-figma-designs-as-applitools-baselines)
+
 # [Full step-by-step workflow: Figma → baseline → compare → review](README_FigmaVisualValidation.md)
 
 # [Setup instructions](docs/README_MachineSetupInstructions.md)

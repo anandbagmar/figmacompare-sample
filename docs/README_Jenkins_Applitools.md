@@ -1,5 +1,10 @@
 # Applitools Setup in Jenkins Server
 
+## Table of contents
+
+- [Step 1 - Install Applitools Eyes Plugin](#step-1---install-applitools-eyes-plugin)
+- [Step 2 - Add APPLITOOLS_API_KEY as credentials in Jenkins Server](#step-2---add-applitools_api_key-as-credentials-in-jenkins-server)
+
 ### Step 1 - Install [**Applitools Eyes Plugin**](https://plugins.jenkins.io/applitools-eyes/)
 
 NOTE: We are using a [pipeline project](../JenkinsFile). So the Applitools Plugin setup is done based on these [instructions](https://plugins.jenkins.io/applitools-eyes/#plugin-content-in-case-of-a-pipeline-project)

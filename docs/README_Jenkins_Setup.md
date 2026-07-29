@@ -1,5 +1,16 @@
 # Jenkins server and agent setup
 
+## Table of contents
+
+- [Install Docker Desktop on macOS](#install-docker-desktop-on-macos)
+- [One time activity: Create a separate docker network for Jenkins](#one-time-activity-create-a-separate-docker-network-for-jenkins)
+- [Get the latest Jenkins server](#get-the-latest-jenkins-server)
+- [Start the Jenkins server](#start-the-jenkins-server)
+- [Access Jenkins](#access-jenkins)
+- [One time activity: Get the initial Admin password](#one-time-activity-get-the-initial-admin-password)
+- [Complete the Setup](#complete-the-setup)
+- [Stop Jenkins server](#stop-jenkins-server)
+
 ---
 ### Install Docker Desktop on macOS
 1. **Download Docker Desktop**:

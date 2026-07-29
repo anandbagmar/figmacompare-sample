@@ -1,6 +1,16 @@
 Back to main [README](../README.md)
 
 # Machine setup instructions
+
+## Table of contents
+
+- [Machine setup instructions](#machine-setup-instructions)
+- [Install Appium and related drivers & plugins](#install-appium-and-related-drivers--plugins)
+- [Start an Android device emulator](#start-an-android-device-emulator)
+- [Machine Connectivity Check](#machine-connectivity-check)
+  - [Instructions for Windows OS](#instructions-for-windows-os)
+  - [Instructions for Linux / OSX OS](#instructions-for-linux--osx-os)
+
 Follow the below steps to get your machine setup ready. These steps are for Selenium-Java based Test Automation. If you are using any other combination, please contact anand.bagmar@essenceoftesting.com
 - Install JDK 17 or higher
 - Clone this git repo (https://github.com/anandbagmar/getting-started-with-visualtesting) on your laptop

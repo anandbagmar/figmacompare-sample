@@ -13,6 +13,26 @@ stage, so there's no copying between stage-specific files.
 | ✅ Implemented | `compareWithFigma` web path — [WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
 | ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — [AndroidCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java) / [IosCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
+## Table of contents
+
+- [Overview](#overview)
+- [Roles](#roles)
+- [Single vs. multi-step tests ("scenarios")](#single-vs-multi-step-tests-scenarios)
+- [Pre-flight validation ("dry run")](#pre-flight-validation-dry-run)
+- [The Excel file, end to end](#the-excel-file-end-to-end)
+- [Step 1 — Prepare the Excel file](#step-1-prepare-the-excel-file-manually-prepared-by-the-uiux-team)
+- [Step 2 — Upload Figma designs as baselines](#step-2-upload-figma-designs-as-baselines-automated-qa)
+- [Step 3 — Identify validation scope](#step-3-identify-validation-scope-manual-qa)
+- [Step 4 — Compare implementation against Figma baseline](#step-4-compare-implementation-against-figma-baseline)
+- [Step 5 — Review and report](#step-5-review-and-report-uiux-team-will-manually-review-the-results)
+- [How to add a new test / scenario](#how-to-add-a-new-test-scenario)
+
+Related docs: [docs/README_Scenarios.md](docs/README_Scenarios.md) ·
+[docs/README_AddingTests.md](docs/README_AddingTests.md) ·
+[README_uploadFromFigma.md](README_uploadFromFigma.md) ·
+[docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) ·
+[docs/README_Appium_Java.md](docs/README_Appium_Java.md)
+
 ## Overview
 
 Each box below shows, top to bottom: what goes **in**, what runs, and what comes **out** —
@@ -60,44 +80,11 @@ flowchart TD
 ## Single vs. multi-step tests ("scenarios")
 
 Most rows are standalone: one Figma export = one full page or component = one
-Applitools test. But the Applitools Figma plugin also supports exporting several
-Figma frames together as the steps of **one** multi-step test (confirmed by
-inspecting its own network traffic: one `eyes.open()`, one match call per frame
-with its own step name, one close). This project supports the same thing via the
-`Scenario Name` column — but web and mobile treat it very differently:
-
-**Web — `Scenario Name` is optional.** A blank value means the row stands alone
-(today's normal behavior, fully generic). A value shared by several **consecutive**
-rows groups them into the ordered steps of one Applitools test. Either way,
-`WebCompareRunner` is the same generic code: it just does `driver.get()` +
-`check()` per row, in one continuous browser session for a scenario. No code to
-write, ever, for any web row.
-
-**Android/iOS — `Scenario Name` is required, always**, whether the row covers one
-Figma export or several. Reaching even a *single* mobile screen can need bespoke
-login or navigation, so there's no generic "just open this screen" runner for
-mobile the way there is for web — every mobile test is inherently a hand-written
-procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
-
-- [`AndroidCompareRunner`](core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java)
-  (plain-Java, in `core`), driven by
-  [`CompareAndroidWithFigmaTest`](samples/src/test/java/io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.java)
-  (thin TestNG shim, in `samples`), is the **one** runner for every Android row,
-  regardless of app.
-- It looks up each group's `Scenario Name` in
-  [`AndroidScenarioRegistry`](core/src/main/java/io/eot/figmacompare/appium/android/AndroidScenarioRegistry.java)
-  — a shared, static registry that any class can register into.
-- App-specific classes like
-  [`BajajFinservAndroidTest`](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
-  aren't TestNG tests themselves — they're **scenario providers**: their static
-  initializer registers `(scenarioName, apkPath, appName, ScenarioFlow)` tuples
-  into the registry. `AndroidCompareRunner` finds and runs whichever one
-  matches, launching the right app for it, **regardless of which class file
-  registered it**.
-- A `ScenarioFlow` owns its whole scenario: whatever login/navigation the real app
-  needs, then one `eyes.checkWindow(...)` call per step it wants recorded, in
-  whatever order makes sense for that flow. It is not a generic "look up a screen
-  and check it" function — it's the actual bespoke test.
+Applitools test. The Applitools Figma plugin also supports exporting several
+Figma frames together as the steps of **one** multi-step test, via the
+`Scenario Name` column — required for every Android/iOS row, optional for Web.
+See [docs/README_Scenarios.md](docs/README_Scenarios.md) for the full explanation
+of how `Scenario Name`, the scenario registries, and `ScenarioFlow` work.
 
 ## Pre-flight validation ("dry run")
 
@@ -269,116 +256,8 @@ Open the same Excel file, filter rows where `Validation Status` is `Unresolved` 
 Visual AI match algorithms to judge whether a flagged difference is a real
 implementation bug. File a Jira issue directly from Applitools for valid discrepancies.
 
+
 ## How to add a new test / scenario
 
-### A. A new standalone web page/component — no code
-
-1. Add one row: `Figma URL`, `Platform=Web`, `App URL / Screen Name`. Leave
-   `Scenario Name` blank.
-2. `./gradlew uploadFromFigma`.
-3. In Step 3, optionally set `Locator` if it's a component, not a full page.
-4. `./gradlew compareWebWithFigma`.
-
-### B. A new web scenario (multiple pages as one test) — no code
-
-1. Add N **consecutive** rows, each with its own `Figma URL`/`App URL / Screen
-   Name`/`Test Name` (the step name), all sharing the same `Scenario Name`.
-2. `./gradlew uploadFromFigma` — uploads all N steps as one Applitools test.
-3. Optionally set `Locator` per row in Step 3.
-4. `./gradlew compareWebWithFigma`.
-
-### C. A new scenario for an **existing** Android/iOS app — small amount of code
-
-Example: adding a new screen/flow to the Bajaj Finserv app.
-
-1. Open that app's provider class,
-   [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java).
-2. Add a new registration in its static block:
-   ```java
-   AndroidScenarioRegistry.register("your-new-scenario-name", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
-       // whatever login/navigation this scenario's screen(s) need, e.g.:
-       // driver.findElement(...).click();
-       eyes.checkWindow(resolveStepName(rows.get(0)));
-       // for a multi-screen scenario, navigate further and call eyes.checkWindow(...) again per step
-   });
-   ```
-3. Add matching row(s) to the Excel: `Platform=Android`, `Scenario Name` set to the
-   **exact same string** you just registered, one row per step (contiguous if more
-   than one).
-4. `./gradlew uploadFromFigma`, then `./gradlew compareAndroidWithFigma`.
-
-### D. A brand-new Android app — one new class + one registry line
-
-1. Create a new provider class under `samples/src/test/java/io/eot/bajajfinserv/appium/android/`,
-   copying `BajajFinservAndroidTest.java`'s shape (private constructor, `APP_NAME`/
-   `APK_NAME` constants, a static block calling `AndroidScenarioRegistry.register(...)`
-   for each of that app's scenarios).
-2. Add its `.apk` under `sampleApps/`.
-3. Add **one line** to the `PROVIDER_CLASSES` list in
-   [CompareAndroidWithFigmaTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.java)
-   loading your new class — without this, its static block (and therefore its
-   registrations) never runs.
-4. Add Excel rows (`Platform=Android`, `Scenario Name` matching what you registered).
-5. `./gradlew uploadFromFigma`, then `./gradlew compareAndroidWithFigma`.
-
-`AndroidCompareRunner.java` itself never needs to change for C or D — it only
-ever looks things up by `Scenario Name` in the shared registry.
-
-### E. iOS — same as C/D, using the iOS equivalents
-
-iOS mirrors Android exactly:
-[`IosScenarioRegistry`](core/src/main/java/io/eot/figmacompare/appium/ios/IosScenarioRegistry.java),
-[`IosCompareRunner`](core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java), and
-[`IosDriverFactory`](core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java) —
-follow steps C/D above but:
-- create your provider class under `samples/src/test/java/io/eot/bajajfinserv/appium/ios/` (e.g.
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/eot/bajajfinserv/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)),
-- register into `IosScenarioRegistry` with an app **path** (a `.app` bundle
-  directory under `sampleApps/`, not a `.zip` — unzip it once) instead of an APK,
-- add your class to the `PROVIDER_CLASSES` list in
-  [CompareIosWithFigmaTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/ios/CompareIosWithFigmaTest.java),
-- use `Platform=iOS` in the Excel,
-- run `./gradlew compareIosWithFigma` instead of `compareAndroidWithFigma`.
-
-### F. Plugging in your own existing Appium tests
-
-If you already have Appium tests for an app and want them driving these visual
-comparisons, this is really the same as C/D — you're not adopting a new test
-framework, just porting your existing interaction code into a `ScenarioFlow`.
-
-**Pre-requisites:**
-
-1. **The app binary** under `sampleApps/` — an `.apk` for Android, or an unzipped
-   `.app` bundle (not a `.zip`) for iOS.
-2. **Figma designs** for whatever screens/steps you want validated — each needs
-   its own Figma URL with a `node-id`.
-3. **Your test logic as plain Appium driver calls**
-   (`driver.findElement(AppiumBy...).click()`, waits, etc.) using
-   `io.appium.java_client.AppiumDriver`/`AppiumBy` — whatever your existing tests
-   already use. It doesn't matter what test runner they currently run under
-   (JUnit, Cucumber, raw TestNG) — you're reusing the interaction code, not the
-   test classes or annotations.
-4. **Decided checkpoints** — exactly which points in your existing flow should
-   become an `eyes.checkWindow(...)` call, i.e. which of your screens map to a
-   Figma frame. Not every step of an existing test needs to become a check, only
-   the ones you want validated against a design.
-5. `config.properties` already set up (Figma token, Applitools creds) — same as
-   everywhere else in this repo.
-6. **One known gap to check first:**
-   [`AndroidDriverFactory`](core/src/main/java/io/eot/figmacompare/appium/android/AndroidDriverFactory.java)/
-   [`IosDriverFactory`](core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java)
-   currently only take `(apkPath/appPath, fullReset)` — a fixed, minimal
-   capability set. If your app needs extra Appium capabilities, or your
-   comparisons need different Eyes config (batch/match-level/etc. are currently
-   global per platform, not per-app), those factories/runners would need a small
-   extension first.
-
-**Steps** — same as C/D: create one provider class per app (or scenario), port
-your interaction code into its `ScenarioFlow`, calling `eyes.checkWindow(...)`
-once per Figma row you want checked, in the same order those rows appear in the
-Excel; add one line to that platform's `CompareAndroidWithFigmaTest`/
-`CompareIosWithFigmaTest` `PROVIDER_CLASSES` list; add the
-matching Excel rows; run `uploadFromFigma` then `compareAndroidWithFigma`/
-`compareIosWithFigma`. See
-[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](samples/src/test/java/io/eot/bajajfinserv/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
-for a worked multi-step example ported from real app exploration.
+Six worked recipes, from "no code" (a new web row) to "plugging in your own
+existing Appium tests" — see [docs/README_AddingTests.md](docs/README_AddingTests.md).

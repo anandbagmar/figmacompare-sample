@@ -1,5 +1,15 @@
 # Jenkins Agent Setup
 
+## Table of contents
+
+- [Step 1 - Create a new agent](#step-1---create-a-new-agent)
+- [Step 2 - Configure the agent](#step-2---configure-the-agent)
+- [Step 3 - Start the agent](#step-3---start-the-agent)
+  - [Fetch the `agent.jar` (Unix)](#fetch-the-agentjar-unix)
+  - [Fetch the `agent.jar` (Windows)](#fetch-the-agentjar-windows)
+  - [Start the agent](#start-the-agent)
+- [Step 4 - Stop the agent](#step-4---stop-the-agent)
+
 ### Step 1 - Create a new agent
 
 Create a new node - **Dashboard --> Nodes --> New Node** 
