@@ -102,7 +102,7 @@ task compareWebWithFigma(type: Test) {
     description = "Run compareWithFigma for Web rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/web/selenium/CompareWebWithFigmaTest.class"
+    include "io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.class"
     configureTestNGTask(it)
 }
 
@@ -111,7 +111,7 @@ task compareAndroidWithFigma(type: Test) {
     description = "Run compareWithFigma for Android rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/appium/android/CompareAndroidWithFigmaTest.class"
+    include "io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.class"
     configureTestNGTask(it)
 }
 
@@ -120,7 +120,7 @@ task compareIosWithFigma(type: Test) {
     description = "Run compareWithFigma for iOS rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/samples/appium/ios/CompareIosWithFigmaTest.class"
+    include "io/eot/bajajfinserv/appium/ios/CompareIosWithFigmaTest.class"
     configureTestNGTask(it)
 }
 
@@ -129,7 +129,7 @@ task uploadFromFigma(type: JavaExec) {
     description = "Upload Figma designs listed in the shared Figma Excel file to Applitools as baselines"
     classpath = sourceSets.test.runtimeClasspath
     workingDir = rootDir
-    mainClass.set("io.samples.UploadFromFigma")
+    mainClass.set("io.eot.figmacompare.UploadFromFigma")
     doFirst {
         if (project.hasProperty("figmaExcel")) {
             systemProperty "figmaExcel", project.property("figmaExcel")

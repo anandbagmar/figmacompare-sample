@@ -21,7 +21,7 @@ export APPLITOOLS_API_KEY=<your-api-key>
 
 ### Choose a browser
 
-[Driver.java](../core/src/main/java/io/samples/web/selenium/Driver.java) creates a local
+[Driver.java](../core/src/main/java/io/eot/figmacompare/web/selenium/Driver.java) creates a local
 `WebDriver` for Chrome, Firefox, Edge, or Safari. It defaults to Chrome, or reads the
 `BROWSER` environment variable if set:
 
@@ -43,17 +43,17 @@ class and choosing **Run**.
 
 ## Example Test Source Files
 
-* [WebFigmaTest.java](../samples/src/test/java/io/samples/web/selenium/WebFigmaTest.java) —
+* [WebFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/web/selenium/WebFigmaTest.java) —
   uploads a locally-stored Figma export as the visual baseline via
-  [Baseline.java](../core/src/main/java/io/samples/Baseline.java), then opens the corresponding
+  [Baseline.java](../core/src/main/java/io/eot/figmacompare/Baseline.java), then opens the corresponding
   page with Selenium and runs a full-page Applitools Eyes comparison against it
   ```bash
-  ./gradlew test -PtestClass=io.samples.web.selenium.WebFigmaTest
+  ./gradlew test -PtestClass=io.eot.bajajfinserv.web.selenium.WebFigmaTest
   ```
 
-* [WebCompareRunner.java](../core/src/main/java/io/samples/web/selenium/WebCompareRunner.java)
+* [WebCompareRunner.java](../core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java)
   (plain-Java orchestration, in `core`) +
-  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/samples/web/selenium/CompareWebWithFigmaTest.java)
+  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **web path of `compareWithFigma`** (see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
@@ -70,7 +70,7 @@ class and choosing **Run**.
   ./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
   ```
   (`compareWebWithFigma` is a shortcut for
-  `./gradlew test -PtestClass=io.samples.web.selenium.CompareWebWithFigmaTest`,
+  `./gradlew test -PtestClass=io.eot.bajajfinserv.web.selenium.CompareWebWithFigmaTest`,
   which still works too if you want it.)
 
   One `VisualGridRunner` and one `BatchInfo` are shared across every group for the whole
