@@ -1,8 +1,14 @@
-# Bajaj Finserv Figma-to-Production Visual Validation POC
+# figmacompare-sample: Figma-to-Production Visual Validation
 
-This project validates that Bajaj Finserv's live web and mobile applications match
-their approved Figma designs, using [Applitools Eyes](https://applitools.com/platform/eyes/)
-as the visual comparison engine. The workflow:
+This project validates that a set of sample web and mobile apps (plus the real Bajaj
+Finserv app) match their approved Figma designs, using
+[Applitools Eyes](https://applitools.com/platform/eyes/) as the visual comparison
+engine. The reusable framework — Excel/Figma/Eyes/Appium plumbing, the plain-Java
+`compareWithFigma` runners — lives in a separate repo, `figmacompare`
+(`io.eot:figmacompare`, built and published to `mavenLocal` from there); this repo is a
+client of it, holding the scenario providers, Excel file, and thin TestNG shims for
+several sample apps (Bajaj Finserv, Calculator, App Automation Playground, Applitools'
+own Hello World demo). The workflow:
 
 1. **Upload Figma designs as baselines** — the [uploadFromFigma](README_uploadFromFigma.md)
    utility reads a list of Figma share links from an Excel file, downloads each design,

@@ -4,9 +4,6 @@ import static io.eot.figmacompare.Wait.waitFor;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 
@@ -20,26 +17,23 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import com.applitools.eyes.BatchInfo;
-import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.StdoutLogHandler;
 import com.applitools.eyes.TestResults;
 import com.applitools.eyes.TestResultsStatus;
 import com.applitools.eyes.appium.Eyes;
 import com.applitools.eyes.appium.Target;
+import com.applitools.eyes.selenium.Configuration;
 
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.ios.IOSDriver;
-import io.appium.java_client.ios.options.XCUITestOptions;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
-import io.appium.java_client.service.local.AppiumServiceBuilder;
-import io.appium.java_client.service.local.flags.GeneralServerFlag;
-
-;
+import io.eot.figmacompare.appium.AppiumServerSupport;
+import io.eot.figmacompare.appium.ios.IosDriverFactory;
+import io.eot.figmacompare.eyes.BatchSupport;
+import io.eot.figmacompare.eyes.EyesConfigSupport;
 
 public class HelloWorldTest {
     private static final String className = HelloWorldTest.class.getSimpleName();
-    private static final String userName = System.getProperty("user.name");
     private static final String IOS_UDID = "B38642DE-1521-4AF0-B13A-EC710A6807E9";
     private static final String IOS_DEVICE_NAME = "iPhone 16 Pro";
     private static final String IOS_PLATFORM_VERSION = "18.1";
@@ -49,55 +43,23 @@ public class HelloWorldTest {
     private static AppiumDriverLocalService localAppiumServer;
     private static String APP_NAME = "sampleApps" + File.separator + "HelloWorldiOS.app";
     private static boolean IS_EYES_ENABLED = true;
-    private final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
     private AppiumDriver driver;
     private Eyes eyes;
-    private static final String LOG_FILE_DIR = System.getenv("LOG_DIR") == null ? "appium-server.log"
-            : System.getenv("LOG_DIR") + "/appium_logs.txt";
 
     // AppiumNativeiOSHelloWorldEyesNMLTest() {
     // }
 
     @BeforeSuite
     static void beforeAll() {
-        startAppiumServer();
-        String batchName = className;
-        batch = new BatchInfo(batchName);
-        System.out.println("Create AppiumRunner");
-        System.out.printf("Batch name: %s%n", batch.getName());
-        System.out.printf("Batch startedAt: %s%n", batch.getStartedAt().getTime());
-        System.out.printf("Batch BatchId: %s%n", batch.getId());
+        localAppiumServer = AppiumServerSupport.start(AppiumServerSupport.defaultLogFileDir());
+        APPIUM_SERVER_URL = localAppiumServer.getUrl().toString();
+        batch = BatchSupport.createSuiteBatch(className);
     }
 
     @AfterSuite
     static void afterAll() {
-        System.out.printf("AfterAll: Stopping the local Appium server running on: '%s'%n", APPIUM_SERVER_URL);
-        if (null != batch) {
-            batch.setCompleted(true);
-        }
-        if (null != localAppiumServer) {
-            localAppiumServer.stop();
-            System.out.printf("Is Appium server running? %s%n", localAppiumServer.isRunning());
-        }
-    }
-
-    private static void startAppiumServer() {
-        System.out.println("Start local Appium server");
-        AppiumServiceBuilder serviceBuilder = new AppiumServiceBuilder();
-        // Use any port, in case the default 4723 is already taken (maybe by another
-        // Appium server)
-        serviceBuilder.usingAnyFreePort();
-        serviceBuilder.withAppiumJS(new File("./node_modules/appium/build/lib/main.js"));
-        serviceBuilder.withLogFile(new File(LOG_FILE_DIR));
-        serviceBuilder.withArgument(GeneralServerFlag.ALLOW_INSECURE, "adb_shell");
-        serviceBuilder.withArgument(GeneralServerFlag.RELAXED_SECURITY);
-
-        // Appium 2.x
-        localAppiumServer = AppiumDriverLocalService.buildService(serviceBuilder);
-
-        localAppiumServer.start();
-        APPIUM_SERVER_URL = localAppiumServer.getUrl().toString();
-        System.out.printf("Appium server started on url: '%s'%n", localAppiumServer.getUrl().toString());
+        BatchSupport.closeBatch(batch);
+        AppiumServerSupport.stop(localAppiumServer);
     }
 
     private static void generateRandomNumber(AppiumDriver driver) {
@@ -151,50 +113,25 @@ public class HelloWorldTest {
 
     void setUpiOS(Method testInfo) {
         System.out.println("BeforeEach: Test - " + testInfo.getName());
-        System.out.printf("Create AppiumDriver for iOS test - %s%n", APPIUM_SERVER_URL);
-
-        // Appium 2.x
-        XCUITestOptions xcuiTestOptions = new XCUITestOptions();
-        xcuiTestOptions.setPlatformName("iOS");
-        xcuiTestOptions.setAutomationName("XCUITest");
-        xcuiTestOptions.setPlatformVersion(IOS_PLATFORM_VERSION);
-        xcuiTestOptions.setDeviceName(IOS_DEVICE_NAME);
-        xcuiTestOptions.setUdid(IOS_UDID);
-        xcuiTestOptions.setFullReset(IS_FULL_RESET);
-        xcuiTestOptions.setShowXcodeLog(false);
-        xcuiTestOptions.setCapability("appium:showIOSLog", false);
-        xcuiTestOptions.setPrintPageSourceOnFindFailure(true);
-        xcuiTestOptions.setAutoAcceptAlerts(true);
-        xcuiTestOptions.setApp(new File(APP_NAME).getAbsolutePath());
-
-        System.out.println("XCUITestOptions: " + xcuiTestOptions);
-        try {
-            driver = new IOSDriver(new URL(APPIUM_SERVER_URL), xcuiTestOptions);
-            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1L));
-        } catch (MalformedURLException e) {
-            System.err.println("Error creating Appium driver for iOS device with capabilities: " + xcuiTestOptions);
-            throw new RuntimeException(e);
-        }
-
+        driver = IosDriverFactory.create(APPIUM_SERVER_URL, APP_NAME, IOS_UDID, IOS_DEVICE_NAME,
+                IOS_PLATFORM_VERSION, IS_FULL_RESET);
         configureEyes(testInfo);
     }
 
     private void configureEyes(Method testInfo) {
         System.out.println("Setup Eyes configuration");
         eyes = new Eyes();
-
         eyes.setLogHandler(new StdoutLogHandler(true));
-        eyes.setBatch(batch);
-        eyes.setBranchName("main");
-        eyes.setEnvName("prod");
-        eyes.addProperty("username", userName);
-        eyes.setApiKey(APPLITOOLS_API_KEY);
-        eyes.setServerUrl("https://eyes.applitools.com");
-        eyes.setMatchLevel(MatchLevel.STRICT);
-        eyes.setIsDisabled(!IS_EYES_ENABLED);
-        eyes.setIgnoreCaret(true);
-        eyes.setIgnoreDisplacements(true);
-        eyes.setSaveNewTests(true);
+
+        Configuration configuration = EyesConfigSupport.baseConfiguration(batch, null);
+        configuration.setSaveNewTests(true);
+        configuration.setBranchName("main");
+        configuration.setEnvironmentName("prod");
+        configuration.setIgnoreCaret(true);
+        configuration.setIsDisabled(!IS_EYES_ENABLED);
+        configuration.setServerUrl("https://eyes.applitools.com");
+        eyes.setConfiguration(configuration);
+
         eyes.open(driver, className, testInfo.getName());
     }
 

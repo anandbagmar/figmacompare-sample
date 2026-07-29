@@ -73,9 +73,9 @@ ever looks things up by `Scenario Name` in the shared registry.
 ## E. iOS — same as C/D, using the iOS equivalents
 
 iOS mirrors Android exactly:
-[`IosScenarioRegistry`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosScenarioRegistry.java),
-[`IosCompareRunner`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java), and
-[`IosDriverFactory`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java) —
+`IosScenarioRegistry` (in figmacompare),
+`IosCompareRunner` (in figmacompare), and
+`IosDriverFactory` (in figmacompare) —
 follow steps C/D above but:
 - create your provider class under its own per-app package (`samples/src/test/java/io/eot/<yourapp>/appium/ios/`; e.g.
   [`AppAutomationPlaygroundIosPlannerScenarioTest`](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java) lives under `io.eot.mockede2e`),
@@ -111,8 +111,8 @@ framework, just porting your existing interaction code into a `ScenarioFlow`.
 5. `config.properties` already set up (Figma token, Applitools creds) — same as
    everywhere else in this repo.
 6. **One known gap to check first:**
-   [`AndroidDriverFactory`](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidDriverFactory.java)/
-   [`IosDriverFactory`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java)
+   `AndroidDriverFactory` (in figmacompare)/
+   `IosDriverFactory` (in figmacompare)
    currently only take `(apkPath/appPath, fullReset)` — a fixed, minimal
    capability set. If your app needs extra Appium capabilities, or your
    comparisons need different Eyes config (batch/match-level/etc. are currently

@@ -10,8 +10,8 @@ stage, so there's no copying between stage-specific files.
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
-| ✅ Implemented | `compareWithFigma` web path — [WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
-| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — [AndroidCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java) / [IosCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
+| ✅ Implemented | `compareWithFigma` web path — `WebCompareRunner.java` (in figmacompare) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
+| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — `AndroidCompareRunner.java` (in figmacompare) / `IosCompareRunner.java` (in figmacompare) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
 ## Table of contents
 
@@ -181,8 +181,7 @@ the same file, in place — plus a final pass/fail summary. For a scenario, one
 result is written onto every row in that group, since it's one Applitools test.
 
 **4a. Web rows — fully generic. ✅ Implemented** as
-[WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java)
-(plain-Java, in `core`) driven by
+`WebCompareRunner` (plain-Java orchestration, in figmacompare) driven by
 [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
 (thin TestNG shim, in `samples`): data-driven from the shared Excel file, one
 invocation per group of `Platform=Web` rows (a standalone row is a group of one).
@@ -204,10 +203,10 @@ See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details.
 Implemented for Android and iOS** via two kinds of class working together, per
 platform:
 
-- One **runner** (plain-Java orchestration in `core` + a thin TestNG shim in
+- One **runner** (plain-Java orchestration in figmacompare + a thin TestNG shim in
   `samples`), used for every app on that platform:
-  [`AndroidCompareRunner`](core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java) /
-  [`IosCompareRunner`](core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java).
+  `AndroidCompareRunner` (in figmacompare) /
+  `IosCompareRunner` (in figmacompare).
   One invocation per group of `Platform=Android`/`iOS` rows sharing a
   `Scenario Name`. It looks up that name in
   `AndroidScenarioRegistry`/`IosScenarioRegistry`, launches the registered app
@@ -241,13 +240,13 @@ platform, plus **one line** added to the `PROVIDER_CLASSES` list in
 actually run (Java only executes a class's static initializer once that class is
 loaded/referenced — an unreferenced provider class would silently register
 nothing). The runner itself never needs to change. All of these reuse the shared
-[AppiumServerSupport](core/src/main/java/io/eot/figmacompare/appium/AppiumServerSupport.java),
-[AndroidDriverFactory](core/src/main/java/io/eot/figmacompare/appium/android/AndroidDriverFactory.java) /
-[IosDriverFactory](core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java),
-[BatchSupport](core/src/main/java/io/eot/figmacompare/eyes/BatchSupport.java),
-[ComparisonResultRecorder](core/src/main/java/io/eot/figmacompare/eyes/ComparisonResultRecorder.java),
-[FigmaExcelFile](core/src/main/java/io/eot/figmacompare/excel/FigmaExcelFile.java), and
-[FigmaValidation](core/src/main/java/io/eot/figmacompare/excel/FigmaValidation.java) utilities.
+`AppiumServerSupport` (in figmacompare),
+`AndroidDriverFactory` (in figmacompare) /
+`IosDriverFactory` (in figmacompare),
+`BatchSupport` (in figmacompare),
+`ComparisonResultRecorder` (in figmacompare),
+`FigmaExcelFile` (in figmacompare), and
+`FigmaValidation` (in figmacompare) utilities.
 
 ## Step 5 — Review and report *(UI/UX team will manually review the results)*
 

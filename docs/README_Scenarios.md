@@ -31,13 +31,12 @@ login or navigation, so there's no generic "just open this screen" runner for
 mobile the way there is for web — every mobile test is inherently a hand-written
 procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
 
-- [`AndroidCompareRunner`](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java)
-  (plain-Java, in `core`), driven by
+- `AndroidCompareRunner` (plain-Java, in figmacompare), driven by
   [`CompareAndroidWithFigmaTest`](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
   (thin TestNG shim, in `samples`), is the **one** runner for every Android row,
   regardless of app.
 - It looks up each group's `Scenario Name` in
-  [`AndroidScenarioRegistry`](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidScenarioRegistry.java)
+  `AndroidScenarioRegistry` (in figmacompare)
   — a shared, static registry that any class can register into.
 - App-specific classes like
   [`BajajFinservAndroidTest`](../samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)

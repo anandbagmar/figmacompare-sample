@@ -16,24 +16,24 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import com.applitools.eyes.BatchInfo;
-import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.StdoutLogHandler;
 import com.applitools.eyes.TestResults;
 import com.applitools.eyes.TestResultsStatus;
 import com.applitools.eyes.appium.Eyes;
 import com.applitools.eyes.appium.Target;
+import com.applitools.eyes.selenium.Configuration;
 
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.ios.options.XCUITestOptions;
 import io.appium.java_client.service.local.AppiumDriverLocalService;
-import io.appium.java_client.service.local.AppiumServiceBuilder;
-import io.appium.java_client.service.local.flags.GeneralServerFlag;
+import io.eot.figmacompare.appium.AppiumServerSupport;
+import io.eot.figmacompare.eyes.BatchSupport;
+import io.eot.figmacompare.eyes.EyesConfigSupport;
 import static io.eot.figmacompare.Wait.waitFor;
 
 class WebiOSHelloWorldTest {
     private static final String className = WebiOSHelloWorldTest.class.getSimpleName();
     private static final long epochSecond = new Date().toInstant().getEpochSecond();
-    private static final String userName = System.getProperty("user.name");
     private static final String IOS_UDID = "B38642DE-1521-4AF0-B13A-EC710A6807E9";
     private static final String IOS_DEVICE_NAME = "iPhone 16 Pro";
     private static final String IOS_PLATFORM_VERSION = "18.1";
@@ -42,7 +42,6 @@ class WebiOSHelloWorldTest {
     private static String APPIUM_SERVER_URL = "http://localhost:4723/wd/hub/";
     private static AppiumDriverLocalService localAppiumServer;
     private static boolean IS_EYES_ENABLED = true;
-    private final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
     private AppiumDriver driver;
     private Eyes eyes;
 
@@ -51,46 +50,16 @@ class WebiOSHelloWorldTest {
 
     @BeforeSuite
     static void beforeAll() {
-        startAppiumServer();
-        String batchName = className;
-        batch = new BatchInfo(batchName);
+        localAppiumServer = AppiumServerSupport.start(AppiumServerSupport.defaultLogFileDir());
+        APPIUM_SERVER_URL = localAppiumServer.getUrl().toString();
+        batch = BatchSupport.createSuiteBatch(className);
         batch.setId(String.valueOf(epochSecond));
-        batch.addProperty("REPOSITORY_NAME", new File(System.getProperty("user.dir")).getName());
-        System.out.println("Create AppiumRunner");
-        System.out.printf("Batch name: %s%n", batch.getName());
-        System.out.printf("Batch startedAt: %s%n", batch.getStartedAt().getTime());
-        System.out.printf("Batch BatchId: %s%n", batch.getId());
     }
 
     @AfterSuite
     static void afterAll() {
-        System.out.printf("AfterAll: Stopping the local Appium server running on: '%s'%n", APPIUM_SERVER_URL);
-        if (null != batch) {
-            batch.setCompleted(true);
-        }
-        if (null != localAppiumServer) {
-            localAppiumServer.stop();
-            System.out.printf("Is Appium server running? %s%n", localAppiumServer.isRunning());
-        }
-    }
-
-    private static void startAppiumServer() {
-        System.out.println("Start local Appium server");
-        AppiumServiceBuilder serviceBuilder = new AppiumServiceBuilder();
-        // Use any port, in case the default 4723 is already taken (maybe by another
-        // Appium server)
-        serviceBuilder.usingAnyFreePort();
-        serviceBuilder.withAppiumJS(new File("./node_modules/appium/build/lib/main.js"));
-        serviceBuilder.withLogFile(new File(System.getenv("LOG_DIR") + "/appium_logs.txt"));
-        serviceBuilder.withArgument(GeneralServerFlag.ALLOW_INSECURE, "adb_shell");
-        serviceBuilder.withArgument(GeneralServerFlag.RELAXED_SECURITY);
-
-        // Appium 2.x
-        localAppiumServer = AppiumDriverLocalService.buildService(serviceBuilder);
-
-        localAppiumServer.start();
-        APPIUM_SERVER_URL = localAppiumServer.getUrl().toString();
-        System.out.printf("Appium server started on url: '%s'%n", localAppiumServer.getUrl().toString());
+        BatchSupport.closeBatch(batch);
+        AppiumServerSupport.stop(localAppiumServer);
     }
 
     @BeforeMethod
@@ -150,19 +119,16 @@ class WebiOSHelloWorldTest {
     private void configureEyes(Method testInfo) {
         System.out.println("Setup Eyes configuration");
         eyes = new Eyes();
-
         eyes.setLogHandler(new StdoutLogHandler(true));
-        eyes.setBatch(batch);
-        eyes.setBranchName("main");
-        eyes.setEnvName("prod");
-        eyes.addProperty("username", userName);
-        eyes.setApiKey(APPLITOOLS_API_KEY);
-        eyes.setServerUrl("https://eyes.applitools.com");
-        eyes.setMatchLevel(MatchLevel.STRICT);
-        eyes.setIsDisabled(!IS_EYES_ENABLED);
-        eyes.setIgnoreCaret(true);
-        eyes.setIgnoreDisplacements(true);
-        eyes.setSaveNewTests(false);
+
+        Configuration configuration = EyesConfigSupport.baseConfiguration(batch, null);
+        configuration.setBranchName("main");
+        configuration.setEnvironmentName("prod");
+        configuration.setIgnoreCaret(true);
+        configuration.setIsDisabled(!IS_EYES_ENABLED);
+        configuration.setServerUrl("https://eyes.applitools.com");
+        eyes.setConfiguration(configuration);
+
         eyes.open(driver, className, testInfo.getName());
     }
 

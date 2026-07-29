@@ -1,9 +1,10 @@
-rootProject.name = 'BajajFinserv-POC'
+rootProject.name = 'figmacompare-sample'
 
-// 'core' is the reusable Figma <-> Applitools visual-testing framework (no TestNG,
-// no this-project-specific test classes) - meant to be extractable into its own
-// repo/published artifact later. 'samples' is this project's actual usage of it:
-// the Bajaj Finserv / App Automation Playground scenario providers, the thin TestNG
-// runner shims, and everything that only makes sense as an example/consumer.
-include 'core', 'samples'
+// The reusable Figma <-> Applitools visual-testing framework now lives in its own
+// repo/published artifact - see ../figmacompare (io.eot:figmacompare) - and 'samples'
+// depends on it as a regular Maven dependency (resolved via mavenLocal). This project
+// holds the Bajaj Finserv / Calculator / App Automation Playground / HelloWorld
+// scenario providers, the thin TestNG runner shims, and everything that only makes
+// sense as an example/consumer of that library.
+include 'samples'
 

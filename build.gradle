@@ -13,11 +13,12 @@ plugins {
 }
 version '0.0.1'
 
-// This is now a multi-module build: 'core' (the reusable framework, no TestNG, no
-// this-project-specific classes - see core/build.gradle) and 'samples' (this
-// project's actual usage of it - see samples/build.gradle for the real task
-// definitions). These root-level tasks are just aliases so existing commands like
-// `./gradlew uploadFromFigma` keep working without a ":samples:" prefix.
+// The reusable framework (no TestNG, no this-project-specific classes) now lives in
+// its own repo/published artifact - see ../figmacompare (io.eot:figmacompare). This
+// repo's only module is 'samples' - this project's actual usage of that library - see
+// samples/build.gradle for the real task definitions. These root-level tasks are just
+// aliases so existing commands like `./gradlew uploadFromFigma` keep working without a
+// ":samples:" prefix.
 task test {
     group = "verification"
     description = "Alias for :samples:test"

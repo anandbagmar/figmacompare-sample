@@ -15,6 +15,7 @@ together with the manual review steps and the `compareWithFigma` comparison prog
 
 - [Quick start](#quick-start)
 - [1. One-time setup](#1-one-time-setup)
+  - [1.0 Build and publish figmacompare](#10-build-and-publish-figmacompare)
   - [1.1 Get a Figma personal access token](#11-get-a-figma-personal-access-token)
   - [1.2 Get your Applitools API key and server URL](#12-get-your-applitools-api-key-and-server-url)
   - [1.3 Fill in `config.properties`](#13-fill-in-configproperties)
@@ -57,6 +58,16 @@ cp figma-visual-testing/templates/figma_visual_tests_template.xlsx figma-visual-
 Everything below is detail/reference for the steps above.
 
 ## 1. One-time setup
+
+### 1.0 Build and publish figmacompare
+This repo depends on `io.eot:figmacompare` resolved via `mavenLocal()` — it isn't on
+Maven Central. Clone the `figmacompare` repo somewhere on your machine and publish it
+locally once:
+```bash
+cd /path/to/figmacompare
+./gradlew publishToMavenLocal
+```
+Re-run this whenever you pull changes to `figmacompare`, before building this repo.
 
 ### 1.1 Get a Figma personal access token
 In Figma: **Account Settings → Security → Personal access tokens** → generate a new

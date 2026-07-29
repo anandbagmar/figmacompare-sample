@@ -78,13 +78,12 @@ class and choosing **Run**.
 
 * [CalculatorFigmaTest.java](../samples/src/test/java/io/eot/calculator/appium/android/CalculatorFigmaTest.java) —
   same Calculator app test, but the visual baseline is uploaded from a locally-stored Figma
-  export via [Baseline.java](../core/src/main/java/io/eot/figmacompare/Baseline.java) before comparing
+  export via `Baseline.java` (in figmacompare) before comparing
   ```bash
   ./gradlew test -PtestClass=io.eot.calculator.appium.android.CalculatorFigmaTest
   ```
 
-* [AndroidCompareRunner.java](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java)
-  (plain-Java orchestration, in `core`) +
+* `AndroidCompareRunner` (plain-Java orchestration, in figmacompare) +
   [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **one runner** for the mobile
   (Android) path of `compareWithFigma`; see
@@ -93,7 +92,7 @@ class and choosing **Run**.
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
   one invocation per group of non-`Skip` `Platform=Android` rows sharing a `Scenario Name`
   (mandatory for every Android/iOS row — see below). For each group it looks up that
-  `Scenario Name` in [AndroidScenarioRegistry](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidScenarioRegistry.java),
+  `Scenario Name` in `AndroidScenarioRegistry` (in figmacompare),
   launches the registered app (APK), and runs the registered `ScenarioFlow` in one
   continuous app session (no relaunch between steps), then does an Applitools Eyes
   comparison against the group's `Baseline Env Name` baseline and writes
@@ -129,12 +128,12 @@ class and choosing **Run**.
   loaded/referenced). `AndroidCompareRunner` itself never needs to change.
 
   Both classes reuse the shared
-  [AppiumServerSupport](../core/src/main/java/io/eot/figmacompare/appium/AppiumServerSupport.java),
-  [AndroidDriverFactory](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidDriverFactory.java),
-  [BatchSupport](../core/src/main/java/io/eot/figmacompare/eyes/BatchSupport.java),
-  [ComparisonResultRecorder](../core/src/main/java/io/eot/figmacompare/eyes/ComparisonResultRecorder.java),
-  [FigmaExcelFile](../core/src/main/java/io/eot/figmacompare/excel/FigmaExcelFile.java), and
-  [FigmaValidation](../core/src/main/java/io/eot/figmacompare/excel/FigmaValidation.java) utilities.
+  `AppiumServerSupport` (in figmacompare),
+  `AndroidDriverFactory` (in figmacompare),
+  `BatchSupport` (in figmacompare),
+  `ComparisonResultRecorder` (in figmacompare),
+  `FigmaExcelFile` (in figmacompare), and
+  `FigmaValidation` (in figmacompare) utilities.
 
   Two more scenario providers, for the "App Automation Playground" demo app
   (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
@@ -158,15 +157,14 @@ class and choosing **Run**.
   ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.WebiOSHelloWorldTest
   ```
 
-* [IosCompareRunner.java](../core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java)
-  (plain-Java orchestration, in `core`) +
+* `IosCompareRunner` (plain-Java orchestration, in figmacompare) +
   [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **one runner** for the mobile (iOS)
   path of `compareWithFigma`, mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest`
   exactly (see the Android section above and
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)): one
   invocation per group of `Platform=iOS` rows sharing a `Scenario Name`, dispatched
-  through [IosScenarioRegistry](../core/src/main/java/io/eot/figmacompare/appium/ios/IosScenarioRegistry.java)
+  through `IosScenarioRegistry` (in figmacompare)
   regardless of which provider class registered the scenario.
   ```bash
   ./gradlew compareIosWithFigma
