@@ -32,7 +32,6 @@ without either side needing to touch the other's tooling.
 - [Setup instructions](#setup-instructions)
 - [Running the Appium (Android/iOS) tests](#running-the-appium-androidios-tests)
 - [Running the web tests with Selenium](#running-the-web-tests-with-selenium)
-- [Running the Appium-Java tests in local Jenkins](#running-the-appium-java-tests-in-local-jenkins)
 - [Uploading Figma designs as Applitools baselines](#uploading-figma-designs-as-applitools-baselines)
 
 # [Full step-by-step workflow: Figma → baseline → compare → review](README_FigmaVisualValidation.md)
@@ -42,8 +41,6 @@ without either side needing to touch the other's tooling.
 # Running the [Appium (Android/iOS) tests](docs/README_Appium_Java.md)
 
 # Running the [web tests with Selenium](docs/README_Web_Selenium.md)
-
-# Running the [Appium-Java tests in local Jenkins](docs/README_Jenkins.md)
 
 # Uploading [Figma designs as Applitools baselines](README_uploadFromFigma.md)
 
