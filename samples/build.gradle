@@ -102,7 +102,7 @@ task compareWebWithFigma(type: Test) {
     description = "Run compareWithFigma for Web rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.class"
+    include "io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.class"
     configureTestNGTask(it)
 }
 
@@ -111,7 +111,7 @@ task compareAndroidWithFigma(type: Test) {
     description = "Run compareWithFigma for Android rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.class"
+    include "io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.class"
     configureTestNGTask(it)
 }
 
@@ -120,7 +120,7 @@ task compareIosWithFigma(type: Test) {
     description = "Run compareWithFigma for iOS rows in the shared Figma Excel file"
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    include "io/eot/bajajfinserv/appium/ios/CompareIosWithFigmaTest.class"
+    include "io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.class"
     configureTestNGTask(it)
 }
 

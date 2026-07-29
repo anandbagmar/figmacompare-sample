@@ -1,4 +1,4 @@
-package io.eot.bajajfinserv.appium.ios;
+package io.eot.mockede2e.appium.ios;
 
 import java.io.File;
 import java.time.Duration;

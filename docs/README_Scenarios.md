@@ -33,7 +33,7 @@ procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
 
 - [`AndroidCompareRunner`](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java)
   (plain-Java, in `core`), driven by
-  [`CompareAndroidWithFigmaTest`](../samples/src/test/java/io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.java)
+  [`CompareAndroidWithFigmaTest`](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
   (thin TestNG shim, in `samples`), is the **one** runner for every Android row,
   regardless of app.
 - It looks up each group's `Scenario Name` in

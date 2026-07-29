@@ -10,7 +10,7 @@ stage, so there's no copying between stage-specific files.
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
-| ✅ Implemented | `compareWithFigma` web path — [WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
+| ✅ Implemented | `compareWithFigma` web path — [WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
 | ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — [AndroidCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java) / [IosCompareRunner.java](core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
 
 ## Table of contents
@@ -183,7 +183,7 @@ result is written onto every row in that group, since it's one Applitools test.
 **4a. Web rows — fully generic. ✅ Implemented** as
 [WebCompareRunner.java](core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java)
 (plain-Java, in `core`) driven by
-[CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.java)
+[CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
 (thin TestNG shim, in `samples`): data-driven from the shared Excel file, one
 invocation per group of `Platform=Web` rows (a standalone row is a group of one).
 Selenium opens `App URL / Screen Name` directly for each row/step in the group, in
@@ -217,9 +217,9 @@ platform:
   registering that app's scenarios, e.g.
   [`BajajFinservAndroidTest`](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
   or
-  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](samples/src/test/java/io/eot/bajajfinserv/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (with an iOS counterpart,
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/eot/bajajfinserv/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
+  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
   ```java
   AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
       // whatever this app's real login/navigation needs, then:

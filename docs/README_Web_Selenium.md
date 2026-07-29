@@ -62,7 +62,7 @@ class and choosing **Run**.
 
 * [WebCompareRunner.java](../core/src/main/java/io/eot/figmacompare/web/selenium/WebCompareRunner.java)
   (plain-Java orchestration, in `core`) +
-  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/web/selenium/CompareWebWithFigmaTest.java)
+  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **web path of `compareWithFigma`** (see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
@@ -79,7 +79,7 @@ class and choosing **Run**.
   ./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
   ```
   (`compareWebWithFigma` is a shortcut for
-  `./gradlew test -PtestClass=io.eot.bajajfinserv.web.selenium.CompareWebWithFigmaTest`,
+  `./gradlew test -PtestClass=io.eot.pipeline.web.selenium.CompareWebWithFigmaTest`,
   which still works too if you want it.)
 
   One `VisualGridRunner` and one `BatchInfo` are shared across every group for the whole

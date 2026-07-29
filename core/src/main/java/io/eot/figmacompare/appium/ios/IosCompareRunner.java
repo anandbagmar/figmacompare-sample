@@ -3,21 +3,13 @@ package io.eot.figmacompare.appium.ios;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.applitools.eyes.BatchInfo;
-import com.applitools.eyes.MatchLevel;
-import com.applitools.eyes.StdoutLogHandler;
 import com.applitools.eyes.TestResults;
 import com.applitools.eyes.appium.Eyes;
-import com.applitools.eyes.config.MobileOptions;
-import com.applitools.eyes.selenium.Configuration;
-import com.applitools.eyes.selenium.StitchMode;
 
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.service.local.AppiumDriverLocalService;
-import io.eot.figmacompare.appium.AppiumServerSupport;
-import io.eot.figmacompare.config.AppConfig;
-import io.eot.figmacompare.eyes.BatchSupport;
+import io.eot.figmacompare.appium.MobileRunSupport;
 import io.eot.figmacompare.eyes.ComparisonResultRecorder;
+import io.eot.figmacompare.eyes.MobileEyesSupport;
 import io.eot.figmacompare.excel.ExcelHelper;
 import io.eot.figmacompare.excel.FigmaExcelFile;
 import io.eot.figmacompare.excel.FigmaRow;
@@ -38,12 +30,7 @@ public class IosCompareRunner {
     private static final boolean IS_FULL_RESET = false;
     private static final boolean IS_EYES_ENABLED = true;
 
-    private static final String userName = System.getProperty("user.name");
-    private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
-
-    private static AppiumDriverLocalService localAppiumServer;
-    private static String appiumServerUrl = "http://localhost:4723/wd/hub/";
-    private static BatchInfo batch;
+    private static MobileRunSupport.Session session;
     private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
 
@@ -51,21 +38,11 @@ public class IosCompareRunner {
     private Eyes eyes;
 
     public static void beforeSuite() {
-        localAppiumServer = AppiumServerSupport.start(AppiumServerSupport.defaultLogFileDir());
-        appiumServerUrl = localAppiumServer.getUrl().toString();
-        batch = BatchSupport.createSuiteBatch(AppConfig.get("APPLITOOLS_BATCH_NAME", "compareIosWithFigma"));
+        session = MobileRunSupport.beforeSuite("compareIosWithFigma");
     }
 
     public static void afterSuite() {
-        BatchSupport.closeBatch(batch);
-        AppiumServerSupport.stop(localAppiumServer);
-        if (null != allRows && !allRows.isEmpty()) {
-            ExcelHelper.writeRows(figmaExcelPath, allRows);
-            long passed = allRows.stream().filter(row -> "Passed".equals(row.validationStatus)).count();
-            System.out.println();
-            System.out.println(passed + " of " + allRows.size() + " row(s) passed. Results written to "
-                    + figmaExcelPath);
-        }
+        MobileRunSupport.afterSuite(session, figmaExcelPath, allRows);
     }
 
     /**
@@ -89,7 +66,7 @@ public class IosCompareRunner {
     public void createDriverForGroup(List<FigmaRow> group) {
         String scenarioName = FigmaExcelFile.scenarioNameOf(group.get(0));
         IosScenarioRegistry.Registration registration = IosScenarioRegistry.get(scenarioName);
-        driver = IosDriverFactory.create(appiumServerUrl, registration.appPath, IOS_UDID, IOS_DEVICE_NAME,
+        driver = IosDriverFactory.create(session.serverUrl, registration.appPath, IOS_UDID, IOS_DEVICE_NAME,
                 IOS_PLATFORM_VERSION, IS_FULL_RESET);
     }
 
@@ -115,7 +92,8 @@ public class IosCompareRunner {
         // Guaranteed non-null by pre-flight validation (validateScenarioTests).
         IosScenarioRegistry.Registration registration = IosScenarioRegistry.get(scenarioName);
 
-        configureEyes(registration.appName, scenarioName, baselineName);
+        eyes = MobileEyesSupport.open(driver, session.batch, registration.appName, scenarioName, baselineName,
+                IS_EYES_ENABLED);
         try {
             registration.flow.run(driver, eyes, group);
             TestResults testResults = eyes.close(false);
@@ -128,32 +106,6 @@ public class IosCompareRunner {
             eyes.abortIfNotClosed();
             throw ex;
         }
-    }
-
-    private void configureEyes(String appName, String testName, String baselineName) {
-        eyes = new Eyes();
-        eyes.setLogHandler(new StdoutLogHandler(true));
-        Configuration configuration = eyes.getConfiguration();
-        configuration.setBaselineEnvName(baselineName);
-        configuration.addProperty("username", userName);
-        configuration.setApiKey(APPLITOOLS_API_KEY);
-        configuration.setBatch(batch);
-        configuration.setBranchName("main");
-        configuration.setCaptureStatusBar(true);
-        configuration.setDisableBrowserFetching(true);
-        configuration.setEnablePatterns(true);
-        configuration.setEnvironmentName("prod");
-        configuration.setHideCaret(true);
-        configuration.setIgnoreCaret(true);
-        configuration.setIgnoreDisplacements(true);
-        configuration.setIsDisabled(!IS_EYES_ENABLED);
-        configuration.setMatchLevel(MatchLevel.STRICT);
-        configuration.setSaveNewTests(false);
-        configuration.setServerUrl("https://eyes.applitools.com");
-        configuration.setStitchMode(StitchMode.CSS);
-        eyes.setConfiguration(configuration);
-        eyes.setConfiguration(eyes.getConfiguration().setMobileOptions(MobileOptions.keepNavigationBar(false)));
-        eyes.open(driver, appName, testName);
     }
 
     private static boolean isBlank(String value) {

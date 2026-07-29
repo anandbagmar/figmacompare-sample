@@ -49,9 +49,10 @@ not share it or commit it into source control.
 The `sampleApps/` directory contains the APK/app files the Android and iOS tests install
 and launch automatically — you don't need to install or launch them yourself:
 
-* `sampleApps/Calculator_8.4.1.apk` — used by `CalculatorTest`/`CalculatorFigmaTest`
-* `sampleApps/app_npu_v8.3.17.apk` — the Bajaj Finserv Android app, used by `BajajFinservAndroidTest`
-* `sampleApps/HelloWorldiOS.app` — used by `HelloWorldTest`
+* `sampleApps/Calculator_8.4.1.apk` — used by `CalculatorTest`/`CalculatorFigmaTest` (`io.eot.calculator`)
+* `sampleApps/app_npu_v8.3.17.apk` — the Bajaj Finserv Android app, used by `BajajFinservAndroidTest` (`io.eot.bajajfinserv`)
+* `sampleApps/App Automation Playground-debug.apk` / `.app.zip` (unzip to `MockedE2EDemo.app`) — the "App Automation Playground" demo app, used by the `AppAutomationPlayground*Test` classes (`io.eot.mockede2e`)
+* `sampleApps/HelloWorldiOS.app` — used by `HelloWorldTest` (`io.eot.helloworld`)
 
 ### Launch the tests
 
@@ -69,22 +70,22 @@ class and choosing **Run**.
 
 ### Android
 
-* [CalculatorTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/CalculatorTest.java) — a
+* [CalculatorTest.java](../samples/src/test/java/io/eot/calculator/appium/android/CalculatorTest.java) — a
   basic native Android Appium test against the Calculator sample app, with Applitools Eyes
   ```bash
-  ./gradlew test -PtestClass=io.eot.bajajfinserv.appium.android.CalculatorTest
+  ./gradlew test -PtestClass=io.eot.calculator.appium.android.CalculatorTest
   ```
 
-* [CalculatorFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/CalculatorFigmaTest.java) —
+* [CalculatorFigmaTest.java](../samples/src/test/java/io/eot/calculator/appium/android/CalculatorFigmaTest.java) —
   same Calculator app test, but the visual baseline is uploaded from a locally-stored Figma
   export via [Baseline.java](../core/src/main/java/io/eot/figmacompare/Baseline.java) before comparing
   ```bash
-  ./gradlew test -PtestClass=io.eot.bajajfinserv.appium.android.CalculatorFigmaTest
+  ./gradlew test -PtestClass=io.eot.calculator.appium.android.CalculatorFigmaTest
   ```
 
 * [AndroidCompareRunner.java](../core/src/main/java/io/eot/figmacompare/appium/android/AndroidCompareRunner.java)
   (plain-Java orchestration, in `core`) +
-  [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.java)
+  [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **one runner** for the mobile
   (Android) path of `compareWithFigma`; see
   [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
@@ -102,7 +103,7 @@ class and choosing **Run**.
   ./gradlew compareAndroidWithFigma
   ```
   (a shortcut for
-  `./gradlew test -PtestClass=io.eot.bajajfinserv.appium.android.CompareAndroidWithFigmaTest`,
+  `./gradlew test -PtestClass=io.eot.pipeline.appium.android.CompareAndroidWithFigmaTest`,
   which still works too if you want it.)
 
 * [BajajFinservAndroidTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java) —
@@ -138,28 +139,28 @@ class and choosing **Run**.
   Two more scenario providers, for the "App Automation Playground" demo app
   (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
   scenario side by side:
-  [AppAutomationPlaygroundAndroidHomeTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
+  [AppAutomationPlaygroundAndroidHomeTest.java](../samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (4-screen Community Meeting Planner flow).
 
 ### iOS
 
-* [HelloWorldTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/HelloWorldTest.java) — a basic
+* [HelloWorldTest.java](../samples/src/test/java/io/eot/helloworld/appium/ios/HelloWorldTest.java) — a basic
   native iOS Appium test (`HelloWorldiOS.app`) with Applitools Eyes
   ```bash
-  ./gradlew test -PtestClass=io.eot.bajajfinserv.appium.ios.HelloWorldTest
+  ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.HelloWorldTest
   ```
 
-* [WebiOSHelloWorldTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/WebiOSHelloWorldTest.java) —
+* [WebiOSHelloWorldTest.java](../samples/src/test/java/io/eot/helloworld/appium/ios/WebiOSHelloWorldTest.java) —
   an Appium test that drives Safari on an iOS Simulator (mobile web), with Applitools Eyes
   ```bash
-  ./gradlew test -PtestClass=io.eot.bajajfinserv.appium.ios.WebiOSHelloWorldTest
+  ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.WebiOSHelloWorldTest
   ```
 
 * [IosCompareRunner.java](../core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java)
   (plain-Java orchestration, in `core`) +
-  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/CompareIosWithFigmaTest.java)
+  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java)
   (thin TestNG shim, in `samples`) — together the **one runner** for the mobile (iOS)
   path of `compareWithFigma`, mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest`
   exactly (see the Android section above and
@@ -172,9 +173,9 @@ class and choosing **Run**.
   ```
   Scenario providers register a `.app` bundle path (not a `.zip` — unzip it once
   under `sampleApps/`) instead of an APK:
-  [AppAutomationPlaygroundIosHomeTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
+  [AppAutomationPlaygroundIosHomeTest.java](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
+  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
   (4-screen flow) — the iOS counterparts of the Android providers above, using the
   same accessibility identifiers (this app is built as a deliberate cross-platform
   automation demo sharing testIDs between platforms).

@@ -11,20 +11,19 @@ import com.applitools.eyes.AccessibilityGuidelinesVersion;
 import com.applitools.eyes.AccessibilityLevel;
 import com.applitools.eyes.AccessibilitySettings;
 import com.applitools.eyes.BatchInfo;
-import com.applitools.eyes.MatchLevel;
 import com.applitools.eyes.RectangleSize;
 import com.applitools.eyes.StdoutLogHandler;
 import com.applitools.eyes.TestResultsSummary;
 import com.applitools.eyes.selenium.BrowserType;
 import com.applitools.eyes.selenium.Configuration;
 import com.applitools.eyes.selenium.Eyes;
-import com.applitools.eyes.selenium.StitchMode;
 import com.applitools.eyes.selenium.fluent.Target;
 import com.applitools.eyes.visualgrid.services.RunnerOptions;
 import com.applitools.eyes.visualgrid.services.VisualGridRunner;
 
 import io.eot.figmacompare.eyes.BatchSupport;
 import io.eot.figmacompare.eyes.ComparisonResultRecorder;
+import io.eot.figmacompare.eyes.EyesConfigSupport;
 import io.eot.figmacompare.excel.ExcelHelper;
 import io.eot.figmacompare.excel.FigmaExcelFile;
 import io.eot.figmacompare.excel.FigmaRow;
@@ -49,7 +48,6 @@ public class WebCompareRunner {
     private static final RectangleSize DEFAULT_VIEWPORT = new RectangleSize(1280, 1024);
 
     private static final String userName = System.getProperty("user.name");
-    private static final String APPLITOOLS_API_KEY = System.getenv("APPLITOOLS_API_KEY");
 
     private static String figmaExcelPath;
     private static List<FigmaRow> allRows;
@@ -154,19 +152,10 @@ public class WebCompareRunner {
 
     private Eyes initialiseEyes(String appName, String baselineName, RectangleSize viewportSize) {
         Eyes eyes = new Eyes(visualGridRunner);
-        Configuration config = new Configuration();
+        Configuration config = EyesConfigSupport.baseConfiguration(batchInfo, baselineName);
         config.setHostOS(System.getProperty("os.name"));
         config.setAppName(appName);
-        config.setBaselineEnvName(baselineName);
-        config.setApiKey(APPLITOOLS_API_KEY);
-        config.setBatch(batchInfo);
-        config.setIsDisabled(Boolean.FALSE);
         config.setForceFullPageScreenshot(true);
-        config.setStitchMode(StitchMode.CSS);
-        config.setSaveNewTests(Boolean.FALSE);
-        config.setMatchLevel(MatchLevel.STRICT);
-        config.addProperty("username", userName);
-        config.setIgnoreDisplacements(true);
         config.setAccessibilityValidation(
                 new AccessibilitySettings(AccessibilityLevel.AA, AccessibilityGuidelinesVersion.WCAG_2_1));
 

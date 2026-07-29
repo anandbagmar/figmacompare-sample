@@ -52,13 +52,16 @@ Example: adding a new screen/flow to the Bajaj Finserv app.
 
 ## D. A brand-new Android app — one new class + one registry line
 
-1. Create a new provider class under `samples/src/test/java/io/eot/bajajfinserv/appium/android/`,
+1. Create a new provider class under its own per-app package, e.g.
+   `samples/src/test/java/io/eot/<yourapp>/appium/android/` (see
+   `io.eot.bajajfinserv`, `io.eot.calculator`, `io.eot.mockede2e` for existing
+   examples - each app/client gets its own top-level package under `io.eot`),
    copying `BajajFinservAndroidTest.java`'s shape (private constructor, `APP_NAME`/
    `APK_NAME` constants, a static block calling `AndroidScenarioRegistry.register(...)`
    for each of that app's scenarios).
 2. Add its `.apk` under `sampleApps/`.
 3. Add **one line** to the `PROVIDER_CLASSES` list in
-   [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/CompareAndroidWithFigmaTest.java)
+   [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
    loading your new class — without this, its static block (and therefore its
    registrations) never runs.
 4. Add Excel rows (`Platform=Android`, `Scenario Name` matching what you registered).
@@ -74,12 +77,12 @@ iOS mirrors Android exactly:
 [`IosCompareRunner`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosCompareRunner.java), and
 [`IosDriverFactory`](../core/src/main/java/io/eot/figmacompare/appium/ios/IosDriverFactory.java) —
 follow steps C/D above but:
-- create your provider class under `samples/src/test/java/io/eot/bajajfinserv/appium/ios/` (e.g.
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)),
+- create your provider class under its own per-app package (`samples/src/test/java/io/eot/<yourapp>/appium/ios/`; e.g.
+  [`AppAutomationPlaygroundIosPlannerScenarioTest`](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java) lives under `io.eot.mockede2e`),
 - register into `IosScenarioRegistry` with an app **path** (a `.app` bundle
   directory under `sampleApps/`, not a `.zip` — unzip it once) instead of an APK,
 - add your class to the `PROVIDER_CLASSES` list in
-  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/ios/CompareIosWithFigmaTest.java),
+  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java),
 - use `Platform=iOS` in the Excel,
 - run `./gradlew compareIosWithFigma` instead of `compareAndroidWithFigma`.
 
@@ -123,7 +126,7 @@ Excel; add one line to that platform's `CompareAndroidWithFigmaTest`/
 `CompareIosWithFigmaTest` `PROVIDER_CLASSES` list; add the
 matching Excel rows; run `uploadFromFigma` then `compareAndroidWithFigma`/
 `compareIosWithFigma`. See
-[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](../samples/src/test/java/io/eot/bajajfinserv/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+[`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](../samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
 for a worked multi-step example ported from real app exploration.
 
 Back to [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)

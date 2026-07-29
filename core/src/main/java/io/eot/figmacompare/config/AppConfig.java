@@ -46,4 +46,19 @@ public class AppConfig {
         String value = get(key);
         return null != value ? value : defaultValue;
     }
+
+    /**
+     * The Applitools API key, from either the APPLITOOLS_API_KEY environment variable or
+     * config.properties (env var wins - see get(String)). Hard-fails with a clear message
+     * if neither is set, rather than letting Eyes fail later with a less specific error.
+     */
+    public static String requireApplitoolsApiKey() {
+        String apiKey = get("APPLITOOLS_API_KEY");
+        if (null == apiKey) {
+            throw new IllegalStateException("APPLITOOLS_API_KEY is not set. Export it as an environment "
+                    + "variable, or add APPLITOOLS_API_KEY=... to "
+                    + new File(CONFIG_DIR, CONFIG_FILE_NAME).getPath() + " - see README_uploadFromFigma.md § 1.2.");
+        }
+        return apiKey;
+    }
 }

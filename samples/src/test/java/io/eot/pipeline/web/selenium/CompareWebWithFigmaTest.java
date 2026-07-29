@@ -1,4 +1,4 @@
-package io.eot.bajajfinserv.web.selenium;
+package io.eot.pipeline.web.selenium;
 
 import java.util.List;
 
