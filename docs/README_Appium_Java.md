@@ -70,13 +70,13 @@ class and choosing **Run**.
 
 ### Android
 
-* [CalculatorTest.java](../samples/src/test/java/io/eot/calculator/appium/android/CalculatorTest.java) — a
+* [CalculatorTest.java](../src/test/java/io/eot/calculator/appium/android/CalculatorTest.java) — a
   basic native Android Appium test against the Calculator sample app, with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.eot.calculator.appium.android.CalculatorTest
   ```
 
-* [CalculatorFigmaTest.java](../samples/src/test/java/io/eot/calculator/appium/android/CalculatorFigmaTest.java) —
+* [CalculatorFigmaTest.java](../src/test/java/io/eot/calculator/appium/android/CalculatorFigmaTest.java) —
   same Calculator app test, but the visual baseline is uploaded from a locally-stored Figma
   export via `Baseline.java` (in figmacompare) before comparing
   ```bash
@@ -84,10 +84,10 @@ class and choosing **Run**.
   ```
 
 * `AndroidCompareRunner` (plain-Java orchestration, in figmacompare) +
-  [CompareAndroidWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
-  (thin TestNG shim, in `samples`) — together the **one runner** for the mobile
+  [CompareAndroidWithFigmaTest.java](../src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
+  (thin TestNG shim, in this repo) — together the **one runner** for the mobile
   (Android) path of `compareWithFigma`; see
-  [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md). Data-driven from
+  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md). Data-driven from
   the same shared Figma Excel file as the web path (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
   one invocation per group of non-`Skip` `Platform=Android` rows sharing a `Scenario Name`
@@ -105,7 +105,7 @@ class and choosing **Run**.
   `./gradlew test -PtestClass=io.eot.pipeline.appium.android.CompareAndroidWithFigmaTest`,
   which still works too if you want it.)
 
-* [BajajFinservAndroidTest.java](../samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java) —
+* [BajajFinservAndroidTest.java](../src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java) —
   **not a TestNG test itself** — a *scenario provider* for the Bajaj Finserv app
   (`app_npu_v8.3.17.apk`). Its static initializer registers this app's scenarios into
   `AndroidScenarioRegistry`:
@@ -138,31 +138,31 @@ class and choosing **Run**.
   Two more scenario providers, for the "App Automation Playground" demo app
   (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
   scenario side by side:
-  [AppAutomationPlaygroundAndroidHomeTest.java](../samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
+  [AppAutomationPlaygroundAndroidHomeTest.java](../src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [AppAutomationPlaygroundAndroidPlannerScenarioTest.java](../src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (4-screen Community Meeting Planner flow).
 
 ### iOS
 
-* [HelloWorldTest.java](../samples/src/test/java/io/eot/helloworld/appium/ios/HelloWorldTest.java) — a basic
+* [HelloWorldTest.java](../src/test/java/io/eot/helloworld/appium/ios/HelloWorldTest.java) — a basic
   native iOS Appium test (`HelloWorldiOS.app`) with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.HelloWorldTest
   ```
 
-* [WebiOSHelloWorldTest.java](../samples/src/test/java/io/eot/helloworld/appium/ios/WebiOSHelloWorldTest.java) —
+* [WebiOSHelloWorldTest.java](../src/test/java/io/eot/helloworld/appium/ios/WebiOSHelloWorldTest.java) —
   an Appium test that drives Safari on an iOS Simulator (mobile web), with Applitools Eyes
   ```bash
   ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.WebiOSHelloWorldTest
   ```
 
 * `IosCompareRunner` (plain-Java orchestration, in figmacompare) +
-  [CompareIosWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java)
-  (thin TestNG shim, in `samples`) — together the **one runner** for the mobile (iOS)
+  [CompareIosWithFigmaTest.java](../src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java)
+  (thin TestNG shim, in this repo) — together the **one runner** for the mobile (iOS)
   path of `compareWithFigma`, mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest`
   exactly (see the Android section above and
-  [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)): one
+  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)): one
   invocation per group of `Platform=iOS` rows sharing a `Scenario Name`, dispatched
   through `IosScenarioRegistry` (in figmacompare)
   regardless of which provider class registered the scenario.
@@ -171,9 +171,9 @@ class and choosing **Run**.
   ```
   Scenario providers register a `.app` bundle path (not a `.zip` — unzip it once
   under `sampleApps/`) instead of an APK:
-  [AppAutomationPlaygroundIosHomeTest.java](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
+  [AppAutomationPlaygroundIosHomeTest.java](../src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosHomeTest.java)
   (single screen) and
-  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
+  [AppAutomationPlaygroundIosPlannerScenarioTest.java](../src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)
   (4-screen flow) — the iOS counterparts of the Android providers above, using the
   same accessibility identifiers (this app is built as a deliberate cross-platform
   automation demo sharing testIDs between platforms).

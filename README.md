@@ -10,7 +10,7 @@ client of it, holding the scenario providers, Excel file, and thin TestNG shims 
 several sample apps (Bajaj Finserv, Calculator, App Automation Playground, Applitools'
 own Hello World demo). The workflow:
 
-1. **Upload Figma designs as baselines** — the [uploadFromFigma](README_uploadFromFigma.md)
+1. **Upload Figma designs as baselines** — the [uploadFromFigma](docs/README_uploadFromFigma.md)
    utility reads a list of Figma share links from an Excel file, downloads each design,
    and uploads it to Applitools Eyes as the approved visual baseline. Pure Java, no
    browser/device needed.
@@ -34,7 +34,7 @@ without either side needing to touch the other's tooling.
 - [Running the web tests with Selenium](#running-the-web-tests-with-selenium)
 - [Uploading Figma designs as Applitools baselines](#uploading-figma-designs-as-applitools-baselines)
 
-# [Full step-by-step workflow: Figma → baseline → compare → review](README_FigmaVisualValidation.md)
+# [Full step-by-step workflow: Figma → baseline → compare → review](docs/README_FigmaVisualValidation.md)
 
 # [Setup instructions](docs/README_MachineSetupInstructions.md)
 
@@ -42,5 +42,5 @@ without either side needing to touch the other's tooling.
 
 # Running the [web tests with Selenium](docs/README_Web_Selenium.md)
 
-# Uploading [Figma designs as Applitools baselines](README_uploadFromFigma.md)
+# Uploading [Figma designs as Applitools baselines](docs/README_uploadFromFigma.md)
 

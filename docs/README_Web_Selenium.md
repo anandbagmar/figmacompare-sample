@@ -52,7 +52,7 @@ class and choosing **Run**.
 
 ## Example Test Source Files
 
-* [WebFigmaTest.java](../samples/src/test/java/io/eot/bajajfinserv/web/selenium/WebFigmaTest.java) —
+* [WebFigmaTest.java](../src/test/java/io/eot/bajajfinserv/web/selenium/WebFigmaTest.java) —
   uploads a locally-stored Figma export as the visual baseline via
   `Baseline.java` (in figmacompare), then opens the corresponding
   page with Selenium and runs a full-page Applitools Eyes comparison against it
@@ -61,9 +61,9 @@ class and choosing **Run**.
   ```
 
 * `WebCompareRunner` (plain-Java orchestration, in figmacompare) +
-  [CompareWebWithFigmaTest.java](../samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
-  (thin TestNG shim, in `samples`) — together the **web path of `compareWithFigma`** (see
-  [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)). This is not a
+  [CompareWebWithFigmaTest.java](../src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
+  (thin TestNG shim, in this repo) — together the **web path of `compareWithFigma`** (see
+  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)). This is not a
   fixed single-page test: it's data-driven from the shared Figma Excel file (default
   `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
   one TestNG invocation per group of non-`Skip` `Platform=Web` rows — a group is either
@@ -99,7 +99,7 @@ via `config.addBrowser(...)` inside its shared `initialiseEyes(...)` method.
 Instead of manually placing an image under `downloaded_images/` and calling
 `Baseline.uploadImageAndSetAsBaseline(...)` as `WebFigmaTest` currently does, you can
 upload Figma designs in bulk via the
-[uploadFromFigma](../README_uploadFromFigma.md) utility — its output Excel (with `Locator`
+[uploadFromFigma](README_uploadFromFigma.md) utility — its output Excel (with `Locator`
 filled in per row) is exactly what `CompareWebWithFigmaTest`/`WebCompareRunner` expects as input.
 
 Back to main [README](../README.md)

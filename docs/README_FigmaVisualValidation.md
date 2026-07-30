@@ -1,3 +1,5 @@
+Back to main [README](../README.md)
+
 # Figma Visual Validation — full workflow
 
 This is the end-to-end runbook for validating Bajaj Finserv's web/mobile
@@ -10,8 +12,8 @@ stage, so there's no copying between stage-specific files.
 | Status | Program |
 |---|---|
 | ✅ Implemented | [uploadFromFigma](README_uploadFromFigma.md) |
-| ✅ Implemented | `compareWithFigma` web path — `WebCompareRunner.java` (in figmacompare) / [CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java), see [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) |
-| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — `AndroidCompareRunner.java` (in figmacompare) / `IosCompareRunner.java` (in figmacompare) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [docs/README_Appium_Java.md](docs/README_Appium_Java.md) |
+| ✅ Implemented | `compareWithFigma` web path — `WebCompareRunner.java` (in figmacompare) / [CompareWebWithFigmaTest.java](../src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java), see [README_Web_Selenium.md](README_Web_Selenium.md) |
+| ✅ Implemented (Android + iOS) | `compareWithFigma` mobile path — `AndroidCompareRunner.java` (in figmacompare) / `IosCompareRunner.java` (in figmacompare) runners + scenario provider classes (e.g. [BajajFinservAndroidTest.java](../src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)), see [README_Appium_Java.md](README_Appium_Java.md) |
 
 ## Table of contents
 
@@ -27,11 +29,11 @@ stage, so there's no copying between stage-specific files.
 - [Step 5 — Review and report](#step-5-review-and-report-uiux-team-will-manually-review-the-results)
 - [How to add a new test / scenario](#how-to-add-a-new-test-scenario)
 
-Related docs: [docs/README_Scenarios.md](docs/README_Scenarios.md) ·
-[docs/README_AddingTests.md](docs/README_AddingTests.md) ·
+Related docs: [README_Scenarios.md](README_Scenarios.md) ·
+[README_AddingTests.md](README_AddingTests.md) ·
 [README_uploadFromFigma.md](README_uploadFromFigma.md) ·
-[docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) ·
-[docs/README_Appium_Java.md](docs/README_Appium_Java.md)
+[README_Web_Selenium.md](README_Web_Selenium.md) ·
+[README_Appium_Java.md](README_Appium_Java.md)
 
 ## Overview
 
@@ -83,7 +85,7 @@ Most rows are standalone: one Figma export = one full page or component = one
 Applitools test. The Applitools Figma plugin also supports exporting several
 Figma frames together as the steps of **one** multi-step test, via the
 `Scenario Name` column — required for every Android/iOS row, optional for Web.
-See [docs/README_Scenarios.md](docs/README_Scenarios.md) for the full explanation
+See [README_Scenarios.md](README_Scenarios.md) for the full explanation
 of how `Scenario Name`, the scenario registries, and `ScenarioFlow` work.
 
 ## Pre-flight validation ("dry run")
@@ -182,8 +184,8 @@ result is written onto every row in that group, since it's one Applitools test.
 
 **4a. Web rows — fully generic. ✅ Implemented** as
 `WebCompareRunner` (plain-Java orchestration, in figmacompare) driven by
-[CompareWebWithFigmaTest.java](samples/src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
-(thin TestNG shim, in `samples`): data-driven from the shared Excel file, one
+[CompareWebWithFigmaTest.java](../src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
+(thin TestNG shim, in this repo): data-driven from the shared Excel file, one
 invocation per group of `Platform=Web` rows (a standalone row is a group of one).
 Selenium opens `App URL / Screen Name` directly for each row/step in the group, in
 the same continuous browser session — no per-row code needed even for a multi-step
@@ -197,7 +199,7 @@ file, and the suite fails there if anything mismatched. Run it with:
 # or against a specific file:
 ./gradlew compareWebWithFigma -PfigmaExcel=path/to/file.xlsx
 ```
-See [docs/README_Web_Selenium.md](docs/README_Web_Selenium.md) for details.
+See [README_Web_Selenium.md](README_Web_Selenium.md) for details.
 
 **4b. Mobile rows — every test is bespoke, dispatched by Scenario Name. ✅
 Implemented for Android and iOS** via two kinds of class working together, per
@@ -214,11 +216,11 @@ platform:
   the Applitools comparison + Excel write-back, same as the web path.
 - App-specific **scenario providers** — not TestNG tests, just a static block
   registering that app's scenarios, e.g.
-  [`BajajFinservAndroidTest`](samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
+  [`BajajFinservAndroidTest`](../src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
   or
-  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](samples/src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
+  [`AppAutomationPlaygroundAndroidPlannerScenarioTest`](../src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
   (with an iOS counterpart,
-  [`AppAutomationPlaygroundIosPlannerScenarioTest`](samples/src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
+  [`AppAutomationPlaygroundIosPlannerScenarioTest`](../src/test/java/io/eot/mockede2e/appium/ios/AppAutomationPlaygroundIosPlannerScenarioTest.java)):
   ```java
   AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
       // whatever this app's real login/navigation needs, then:
@@ -259,4 +261,4 @@ implementation bug. File a Jira issue directly from Applitools for valid discrep
 ## How to add a new test / scenario
 
 Six worked recipes, from "no code" (a new web row) to "plugging in your own
-existing Appium tests" — see [docs/README_AddingTests.md](docs/README_AddingTests.md).
+existing Appium tests" — see [README_AddingTests.md](README_AddingTests.md).

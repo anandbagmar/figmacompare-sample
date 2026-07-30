@@ -1,3 +1,5 @@
+Back to main [README](../README.md)
+
 # uploadFromFigma — Figma → Applitools baseline uploader
 
 Reads a list of Figma share links from the shared Figma Excel file, downloads each
@@ -27,7 +29,7 @@ together with the manual review steps and the `compareWithFigma` comparison prog
 
 ## Quick start
 
-Templates live in **[figma-visual-testing/templates/](figma-visual-testing/templates/)**
+Templates live in **[figma-visual-testing/templates/](../figma-visual-testing/templates/)**
 and are reference-only — never edit them directly. Copy them one level up, into
 **figma-visual-testing/**, to create your actual working files.
 
@@ -79,7 +81,7 @@ usually `https://eyesapi.applitools.com` (SaaS) — use your org's URL if you're
 private/on-prem instance.
 
 ### 1.3 Fill in `config.properties`
-Copy [figma-visual-testing/templates/config.properties.example](figma-visual-testing/templates/config.properties.example)
+Copy [figma-visual-testing/templates/config.properties.example](../figma-visual-testing/templates/config.properties.example)
 to `figma-visual-testing/config.properties` (this exact file is gitignored, so your
 tokens never get committed):
 
@@ -111,7 +113,7 @@ Any of these can instead be set as an **environment variable** of the same name
 
 ## 2. Fill in the Figma Excel file
 
-Copy [figma-visual-testing/templates/figma_visual_tests_template.xlsx](figma-visual-testing/templates/figma_visual_tests_template.xlsx)
+Copy [figma-visual-testing/templates/figma_visual_tests_template.xlsx](../figma-visual-testing/templates/figma_visual_tests_template.xlsx)
 to `figma-visual-testing/figma_visual_tests.xlsx` (the default filename both
 `uploadFromFigma` and `compareWithFigma` look for):
 

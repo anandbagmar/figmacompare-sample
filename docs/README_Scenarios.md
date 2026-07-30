@@ -1,4 +1,4 @@
-Back to [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)
+Back to [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)
 
 # Single vs. multi-step tests ("scenarios")
 
@@ -32,14 +32,14 @@ mobile the way there is for web — every mobile test is inherently a hand-writt
 procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
 
 - `AndroidCompareRunner` (plain-Java, in figmacompare), driven by
-  [`CompareAndroidWithFigmaTest`](../samples/src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
-  (thin TestNG shim, in `samples`), is the **one** runner for every Android row,
+  [`CompareAndroidWithFigmaTest`](../src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
+  (thin TestNG shim, in this repo), is the **one** runner for every Android row,
   regardless of app.
 - It looks up each group's `Scenario Name` in
   `AndroidScenarioRegistry` (in figmacompare)
   — a shared, static registry that any class can register into.
 - App-specific classes like
-  [`BajajFinservAndroidTest`](../samples/src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
+  [`BajajFinservAndroidTest`](../src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java)
   aren't TestNG tests themselves — they're **scenario providers**: their static
   initializer registers `(scenarioName, apkPath, appName, ScenarioFlow)` tuples
   into the registry. `AndroidCompareRunner` finds and runs whichever one
@@ -53,4 +53,4 @@ procedure. `Scenario Name` is the key QA uses to dispatch to that procedure:
 See [README_AddingTests.md](README_AddingTests.md) for how to register a new
 scenario.
 
-Back to [README_FigmaVisualValidation.md](../README_FigmaVisualValidation.md)
+Back to [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)
