@@ -149,6 +149,9 @@ task uploadFromFigma(type: JavaExec) {
         if (project.hasProperty("forceRefresh")) {
             systemProperty "forceRefresh", project.property("forceRefresh")
         }
+        if (project.hasProperty("platform")) {
+            systemProperty "platform", project.property("platform")
+        }
     }
 }
 

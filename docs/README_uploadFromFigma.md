@@ -170,10 +170,18 @@ and one for mobile) in priority order:
 - `-PforceRefresh=true` — re-downloads every Figma image even if a cached copy
   already exists (useful when the Figma design has changed); defaults to `false`,
   which reuses any cached image already in `FIGMA_CACHE_DIR`.
+- `-Pplatform=Web|Android|iOS` — only upload baselines for that platform's rows (an
+  invalid value hard-fails immediately). Defaults to unset, which processes every
+  row regardless of platform (prior behavior) - useful while iterating on one
+  platform's tests without re-touching baselines for the others.
+
+```bash
+./gradlew uploadFromFigma -Pplatform=Web
+```
 
 Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
 `UploadFromFigma.java` and run its `main` method with Program Arguments set to
-`[figmaExcelPath] [forceRefresh]` (both optional).
+`[figmaExcelPath] [forceRefresh] [platform]` (all optional).
 
 ## 4. Check the results
 
