@@ -234,7 +234,27 @@ Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
 - Re-running with the same `Figma URL` and no `forceRefresh` reuses the cached
   image — it will not re-hit the Figma API, but it *will* re-upload to Applitools
   and create a new baseline test each run (this program always calls
-  `saveNewTests(true)`).
+  `saveNewTests(true)`). A first-ever run for a given `Baseline Env Name` will show
+  as **New**/**Unresolved** in the Applitools dashboard's Test Results view - that's
+  expected, not a failure: there's nothing to compare a brand-new checkpoint
+  against, but it is saved as the active baseline (since `saveNewTests` is on). To
+  confirm it actually saved, run `compareWebWithFigma` against the same row - it'll
+  show Passed/Failed (not New) once a real baseline exists to diff against.
+- **Manual workaround for a Figma image that keeps failing** (rate-limited, or
+  otherwise): you can place the image directly in the cache instead of waiting on
+  the Figma API. `FigmaClient.getCachedImage` only hits the network if the cache
+  file doesn't already exist, so a manually-placed file with the right name is used
+  as-is:
+  1. In Figma, select the frame → **Export** → PNG at the row's `Scale` (default `1`)
+  2. Name it `{fileKey}_{nodeId with ":" replaced by "-"}_{scale}x.{format}` - e.g.
+     for `node-id=170-61` in file `7kPt5byFnDm1hs2Bd1FlNL`, scale `1`, format `png`:
+     `7kPt5byFnDm1hs2Bd1FlNL_170-61_1x.png`
+  3. Move it into `FIGMA_CACHE_DIR` (default `downloaded_images/figma-cache/`)
+  4. Run without `-PforceRefresh=true`, so the cache is honored
+
+  Make sure the export matches what Figma's own API would have rendered (same
+  frame, default export settings) - this image becomes the actual Applitools
+  baseline, not just a placeholder.
 - A Figma URL without a `node-id` (i.e. a link to a whole file/page rather than a
   specific frame) is not currently supported — use *Copy link to selection* on the
   specific frame/component in Figma.
