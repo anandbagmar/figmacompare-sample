@@ -98,6 +98,11 @@ jobs:
           # UploadFromFigma.main() (unlike compareWebWithFigma) has no built-in default
           # for this and hard-fails without it - not a secret, so it's fine hardcoded here.
           APPLITOOLS_SERVER_URL: https://eyes.applitools.com
+          # figmacompare is CI-provider agnostic, so it never reads GITHUB_RUN_NUMBER
+          # itself - we map it into the generic CI_RUN_NUMBER key it does read, so
+          # Applitools batch names get suffixed with this run's number (see BatchSupport
+          # in figmacompare).
+          CI_RUN_NUMBER: ${{ github.run_number }}
       # Runs on every trigger, including right after the upload step above on a manual
       # dispatch - always reads whatever is currently on disk in
       # figma_mockede2e_web_ci.xlsx, so on a manual dispatch that's the freshly-uploaded
@@ -113,6 +118,8 @@ jobs:
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
           HEADLESS: "true"
+          # See the CI_RUN_NUMBER comment on the upload step above.
+          CI_RUN_NUMBER: ${{ github.run_number }}
       # Only on a manual dispatch - by this point the Excel file carries both the
       # upload step's baseline results AND the compare step's comparison results, so
       # this one artifact shows the full picture. Surfaced as a workflow artifact since
