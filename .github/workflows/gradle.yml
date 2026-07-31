@@ -26,6 +26,16 @@ jobs:
           node -v
           npm install
           npm list
+      # Resolves the latest figmacompare release tag so CI always builds against the
+      # newest published version rather than a hardcoded default - see
+      # scripts/latest-figmacompare-version.sh. GH_TOKEN authenticates gh CLI against
+      # the private figmacompare repo (same FIGMACOMPARE_PAT used to consume its
+      # packages below).
+      - name: Resolve latest figmacompare version
+        id: figmacompare_version
+        run: echo "version=$(./scripts/latest-figmacompare-version.sh)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.FIGMACOMPARE_PAT }}
       # io.eot:figmacompare is resolved from figmacompare's GitHub Packages registry
       # (see build.gradle's repositories block) instead of being built from source here.
       # anandbagmar/figmacompare is private, so reading its packages needs an
@@ -35,7 +45,7 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
-          arguments: build --refresh-dependencies -x test
+          arguments: build --refresh-dependencies -x test -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
@@ -51,7 +61,7 @@ jobs:
       - name: Run web Figma visual tests
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
-          arguments: compareWebWithFigma -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx
+          arguments: compareWebWithFigma -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}

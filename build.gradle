@@ -38,10 +38,14 @@ repositories {
 
 compileJava { options.encoding = "UTF-8" }
 
+// Real release, published from figmacompare's own release workflow - see its README's
+// "Publishing a release" section for how to cut a new one. Defaults to a pinned version
+// so a plain `./gradlew build` is reproducible; pass -PfigmacompareVersion=<version> to
+// override (see scripts/latest-figmacompare-version.sh to resolve the latest one).
+def figmacompareVersion = project.findProperty('figmacompareVersion') ?: '0.1.0'
+
 dependencies {
-    // Real release, published from figmacompare's own release workflow - see its
-    // README's "Publishing a release" section for how to cut a new one.
-    implementation "io.eot:figmacompare:0.1.0"
+    implementation "io.eot:figmacompare:${figmacompareVersion}"
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
     implementation "com.applitools:eyes-images-java5:5.81.35"
     implementation ("com.applitools:eyes-appium-java5:5.79.35") {
