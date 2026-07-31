@@ -82,18 +82,27 @@ for the scope requirements) as an environment variable before building:
 export FIGMACOMPARE_PAT=<your-token>
 ./gradlew compareWebWithFigma   # or any other task - resolves io.eot:figmacompare from GitHub Packages
 ```
+Without a `-PfigmacompareVersion=...` override, this resolves the pinned default in
+`build.gradle` (not necessarily the latest release) - run
+`./scripts/latest-figmacompare-version.sh` to get the actual latest version, e.g.:
+```bash
+./gradlew compareWebWithFigma -PfigmacompareVersion=$(./scripts/latest-figmacompare-version.sh)
+```
 
 **Actively iterating on a figmacompare change:** publish it to your local `~/.m2` cache
-instead, which `mavenLocal()` picks up automatically (no token needed) - but you'll also
-need to temporarily point this repo's `implementation "io.eot:figmacompare:..."` line in
-`build.gradle` at whatever version you published locally (`0.0.1-local` by default):
+instead, which `mavenLocal()` picks up automatically (no token needed), then point this
+repo at that version with `-PfigmacompareVersion=...` - **no `build.gradle` edit
+needed**, unlike before this property existed:
 ```bash
 cd /path/to/figmacompare
 ./gradlew publishToMavenLocal
-# then in this repo's build.gradle, temporarily:
-#   implementation "io.eot:figmacompare:0.0.1-local"
+# prints the exact version published, e.g. "Published io.eot:figmacompare:0.0.1-local
+# to mavenLocal ... To use it from figmacompare-sample, run there with:
+# -PfigmacompareVersion=0.0.1-local"
+
+cd /path/to/figmacompare-sample
+./gradlew compareWebWithFigma -PfigmacompareVersion=0.0.1-local
 ```
-Revert that line back to the real pinned version before committing.
 
 ### 1.1 Get a Figma personal access token
 In Figma: **Account Settings → Security → Personal access tokens** → generate a new
