@@ -13,6 +13,10 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Needed only for the "Trim old workflow runs" step below.
+      actions: write
 
     steps:
       - uses: actions/checkout@v7
@@ -67,3 +71,14 @@ jobs:
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
           HEADLESS: "true"
+      # Keeps GitHub Actions run history (and its storage/minutes usage) small on a free
+      # account - deletes everything but the 5 most recent runs of this workflow. Safe:
+      # only removes CI run history/logs, never touches code or dependencies.
+      - name: Trim old workflow runs (keep last 5)
+        if: always()
+        run: |
+          gh run list --workflow "${{ github.workflow }}" --repo "${{ github.repository }}" \
+              --limit 100 --json databaseId --jq '.[5:][].databaseId' \
+            | xargs -r -n1 gh run delete --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
