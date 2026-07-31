@@ -33,6 +33,7 @@ without either side needing to touch the other's tooling.
 - [Running the Appium (Android/iOS) tests](#running-the-appium-androidios-tests)
 - [Running the web tests with Selenium](#running-the-web-tests-with-selenium)
 - [Uploading Figma designs as Applitools baselines](#uploading-figma-designs-as-applitools-baselines)
+- [Architecture](#architecture)
 - [Continuous Integration](#continuous-integration)
 
 # [Full step-by-step workflow: Figma → baseline → compare → review](docs/README_FigmaVisualValidation.md)
@@ -45,29 +46,110 @@ without either side needing to touch the other's tooling.
 
 # Uploading [Figma designs as Applitools baselines](docs/README_uploadFromFigma.md)
 
+## Architecture
+
+Two repos, kept deliberately decoupled: **[figmacompare](https://github.com/anandbagmar/figmacompare)**
+is the reusable library (Excel/Figma/Eyes plumbing, the `compareWithFigma` and
+`uploadFromFigma` pipelines) with its own tests, versioning, and release process. This
+repo (`figmacompare-sample`) is a client of it - scenario providers, the Excel file,
+thin TestNG shims - that depends on it as a real published artifact, never by building
+it from source.
+
+```mermaid
+flowchart TB
+    subgraph lib["figmacompare (library repo)"]
+        libSrc["src/main - excel/figma/eyes logic,\ncompareWithFigma, uploadFromFigma"]
+        libCi["ci.yml\non: push (any branch)"]
+        libPublish["publish.yml\non: GitHub Release"]
+    end
+
+    subgraph ghp["GitHub Packages"]
+        pkg["io.eot:figmacompare:x.y.z"]
+    end
+
+    subgraph sample["figmacompare-sample (this repo)"]
+        sampleSrc["Scenario providers, Excel file,\nTestNG shims"]
+        workflow["gradle.yml"]
+    end
+
+    subgraph external["External services"]
+        figmaApi["Figma REST API"]
+        applitools["Applitools Eyes"]
+    end
+
+    libSrc --> libCi
+    libCi -->|tests must pass| libPublish
+    libPublish -->|"gh release create\n(scripts/create-release.sh)"| pkg
+    pkg -->|"resolved via FIGMACOMPARE_PAT\n(scripts/latest-figmacompare-version.sh)"| workflow
+    sampleSrc --> workflow
+    workflow -->|"compareWebWithFigma\n(every push/PR/dispatch)"| applitools
+    workflow -.->|"uploadFromFigma\n(manual dispatch, runUpload=true only)"| figmaApi
+    workflow -.->|uploadFromFigma| applitools
+```
+
+Solid arrows always happen; dashed arrows are the opt-in manual path. See
+[figmacompare's README](https://github.com/anandbagmar/figmacompare#readme) for the
+library's own release process, and the Continuous Integration section below for how
+this repo's CI is wired.
+
 ## Continuous Integration
 
-`.github/workflows/gradle.yml` runs on every push/PR to `main`:
+`.github/workflows/gradle.yml` has three triggers - push to `main`, PR to `main`, and
+a manual `workflow_dispatch` - sharing one job whose steps are conditionally gated so
+the right subset runs for each:
 
-1. **Build with Gradle** — compiles and resolves `io.eot:figmacompare` from GitHub
-   Packages (needs `FIGMACOMPARE_PAT`, since that repo is private). Doesn't run any
-   tests itself (`-x test`).
-2. **Restore CI Figma Excel file from secret** — decodes the `FIGMA_CI_EXCEL_B64`
-   secret into `figma-visual-testing/figma_mockede2e_web_ci.xlsx`.
-3. **Run web Figma visual tests** — runs `compareWebWithFigma` in headless Chrome
-   (`HEADLESS=true`) against that file, using `APPLITOOLS_API_KEY` to authenticate
-   with Eyes.
+1. **Build with Gradle** *(every trigger)* — compiles and resolves `io.eot:figmacompare`
+   from GitHub Packages (needs `FIGMACOMPARE_PAT`, since that repo is private), pinned
+   to whatever `scripts/latest-figmacompare-version.sh` resolves as the newest release.
+   Doesn't run any tests itself (`-x test`).
+2. **Restore CI Figma Excel file from secret** *(every trigger)* — decodes the
+   `FIGMA_CI_EXCEL_B64` secret into `figma-visual-testing/figma_mockede2e_web_ci.xlsx`.
+3. **Cache Figma downloaded images** *(manual dispatch with `runUpload` checked, only)*
+   — restores `downloaded_images/figma-cache/` from the GitHub Actions cache, keyed on
+   the Excel file's content hash (falls back to the most recent cache on a miss). See
+   [Figma image caching](#figma-image-caching) below for why this exists.
+4. **Upload Figma designs as Applitools baselines** *(manual dispatch with `runUpload`
+   checked, only)* — runs `uploadFromFigma`, updating the Excel file in place with new
+   `Baseline Env Name`/`Batch URL`/`Status` per row. Runs **before** step 5 so compare
+   uses these fresh baselines instead of stale ones. Pure Java, no browser needed.
+5. **Run web Figma visual tests** *(every trigger)* — runs `compareWebWithFigma` in
+   headless Chrome (`HEADLESS=true`) against whatever is currently on disk - the
+   just-uploaded baselines on a `runUpload` dispatch, or the untouched restored file
+   otherwise - using `APPLITOOLS_API_KEY` to authenticate with Eyes. Also writes its
+   own results (`Comparison Batch URL`/`Validation Status`) back into the same file.
+6. **Upload updated Excel file with results** *(manual dispatch, only)* — by this point
+   the file carries both steps' results, uploaded as a workflow artifact (7-day
+   retention) so you can see what happened without digging through logs.
+7. **Trim old workflow runs** *(always)* — keeps only the 5 most recent runs, to stay
+   within a free account's Actions quota.
 
-`uploadFromFigma` does **not** run on push/PR — creating new Applitools baselines isn't
-something that should happen silently on every commit. Instead, it's wired to the same
-workflow's `workflow_dispatch` trigger: go to the **Actions** tab → "Java CI with
-Gradle" → **Run workflow**, optionally check "Re-download every Figma image even if a
-cached copy exists" (`forceRefresh`), then run it. That run only executes the "Upload
-Figma designs as Applitools baselines" step (build/compare are skipped for a manual
-dispatch, and vice versa) and uploads the resulting Excel file - with the new `Baseline
-Batch URL`/`Status` columns filled in - as a workflow artifact (7-day retention) so you
-can see what got uploaded. Android/iOS `compare*WithFigma` aren't wired into CI yet
-(would need an emulator/device farm in the runner).
+`uploadFromFigma` never runs on push/PR — creating new Applitools baselines isn't
+something that should happen silently on every commit. To run it: **Actions** tab →
+"Java CI with Gradle" → **Run workflow**, check **`runUpload`** (defaults to
+unchecked, so a plain dispatch just re-runs compare against existing baselines),
+optionally also check **`forceRefresh`** to bypass the image cache. Android/iOS
+`compare*WithFigma` aren't wired into CI (would need an emulator/device farm in the
+runner) - by design, not an oversight.
+
+### Figma image caching
+
+The first `uploadFromFigma` run (before caching existed) drove the account's Figma
+personal access token into repeated `HTTP 429` (rate limited) responses - every CI run
+re-downloaded every image from scratch, and several manual test runs in a short window
+compounded that. Two independent mitigations now exist:
+
+- **Cross-run caching** (step 3 above) — `downloaded_images/figma-cache/` persists
+  between CI runs via `actions/cache`, so a run only downloads images that are new or
+  actually changed instead of all of them every time.
+- **Client-side request pacing** (`FigmaClient` in `figmacompare`) — every outgoing
+  Figma API request is spaced at least 1 second apart, reducing the chance of bursting
+  past the rate limit in the first place, independent of the retry-with-backoff logic
+  that already existed for when a 429 does happen.
+
+If you still see 429s after both of these, it's most likely that the token itself is
+already deep into an extended rate-limit window from recent heavy use (e.g. several
+manual dispatches in quick succession while testing) - waiting before retrying is the
+only real fix at that point, not a config change.
 
 ### Required repo secrets (Settings → Secrets and variables → Actions)
 

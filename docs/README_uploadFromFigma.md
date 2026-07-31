@@ -231,3 +231,11 @@ Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
   specific frame/component in Figma.
 - Since the Excel file is updated in place, close it in Excel before running —
   a file locked open by another program can't be overwritten.
+- Figma's API rate-limits requests per token - if you see repeated `HTTP 429`
+  messages, that's Figma throttling, not a bug. `FigmaClient` (in `figmacompare`)
+  already retries with backoff and paces requests to reduce how often this happens,
+  but heavy back-to-back runs (e.g. several manual CI dispatches while testing) can
+  still exhaust the token's budget - if so, just wait before retrying. In CI
+  specifically, `downloaded_images/figma-cache/` is cached between runs (see this
+  repo's README, "Continuous Integration" § Figma image caching) so repeated runs
+  don't re-download unchanged images.
