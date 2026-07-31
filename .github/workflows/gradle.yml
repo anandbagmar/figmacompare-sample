@@ -8,6 +8,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Manual-only trigger (Actions tab -> this workflow -> "Run workflow") for
+  # uploadFromFigma - see the "Upload Figma designs as Applitools baselines" step
+  # below, gated to only run for this trigger. Never runs on a push/PR, since it
+  # creates new Applitools baselines and shouldn't happen silently on every commit.
+  workflow_dispatch:
+    inputs:
+      forceRefresh:
+        description: "Re-download every Figma image even if a cached copy exists"
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -60,8 +70,36 @@ jobs:
         run: echo "$FIGMA_CI_EXCEL_B64" | base64 --decode > figma-visual-testing/figma_mockede2e_web_ci.xlsx
         env:
           FIGMA_CI_EXCEL_B64: ${{ secrets.FIGMA_CI_EXCEL_B64 }}
-      # uploadFromFigma is intentionally NOT run in CI - this only compares the app
-      # against baselines that already exist in Applitools, so FIGMA_TOKEN isn't needed.
+      # Only runs on a manual "Run workflow" dispatch (see the workflow_dispatch trigger
+      # above) - uploads the Web rows in the CI Excel file to Applitools as new
+      # baselines, updating figma_mockede2e_web_ci.xlsx IN PLACE (new Baseline Env
+      # Name/Batch URL/Status per row). Runs before "Run web Figma visual tests" below
+      # so that step compares against these fresh baselines instead of stale ones. Pure
+      # Java, no browser needed, so no HEADLESS here.
+      - name: Upload Figma designs as Applitools baselines
+        if: github.event_name == 'workflow_dispatch'
+        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
+        with:
+          arguments: >-
+            uploadFromFigma
+            -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx
+            -Pplatform=Web
+            -PforceRefresh=${{ inputs.forceRefresh }}
+            -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
+          FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+          APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+          # UploadFromFigma.main() (unlike compareWebWithFigma) has no built-in default
+          # for this and hard-fails without it - not a secret, so it's fine hardcoded here.
+          APPLITOOLS_SERVER_URL: https://eyes.applitools.com
+      # Runs on every trigger, including right after the upload step above on a manual
+      # dispatch - always reads whatever is currently on disk in
+      # figma_mockede2e_web_ci.xlsx, so on a manual dispatch that's the freshly-uploaded
+      # baselines from the step above, and on push/PR it's the untouched CI file
+      # restored from the secret. Also writes its own results (Comparison Batch
+      # URL/Validation Status) back into the same file.
       - name: Run web Figma visual tests
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
@@ -71,6 +109,18 @@ jobs:
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
           HEADLESS: "true"
+      # Only on a manual dispatch - by this point the Excel file carries both the
+      # upload step's baseline results AND the compare step's comparison results, so
+      # this one artifact shows the full picture. Surfaced as a workflow artifact since
+      # the file itself is never committed. Short retention since this is a one-off
+      # inspection copy, not something to keep long-term.
+      - name: Upload updated Excel file with results
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: figma_mockede2e_web_ci-with-results
+          path: figma-visual-testing/figma_mockede2e_web_ci.xlsx
+          retention-days: 7
       # Keeps GitHub Actions run history (and its storage/minutes usage) small on a free
       # account - deletes everything but the 5 most recent runs of this workflow. Safe:
       # only removes CI run history/logs, never touches code or dependencies.

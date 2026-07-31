@@ -58,10 +58,16 @@ without either side needing to touch the other's tooling.
    (`HEADLESS=true`) against that file, using `APPLITOOLS_API_KEY` to authenticate
    with Eyes.
 
-`uploadFromFigma` is **not** run in CI — it's a deliberate, manual step (baselines are
-uploaded once, then compared against repeatedly), so `FIGMA_TOKEN` isn't needed as a
-CI secret. Android/iOS `compare*WithFigma` also aren't wired into CI yet (would need an
-emulator/device farm in the runner).
+`uploadFromFigma` does **not** run on push/PR — creating new Applitools baselines isn't
+something that should happen silently on every commit. Instead, it's wired to the same
+workflow's `workflow_dispatch` trigger: go to the **Actions** tab → "Java CI with
+Gradle" → **Run workflow**, optionally check "Re-download every Figma image even if a
+cached copy exists" (`forceRefresh`), then run it. That run only executes the "Upload
+Figma designs as Applitools baselines" step (build/compare are skipped for a manual
+dispatch, and vice versa) and uploads the resulting Excel file - with the new `Baseline
+Batch URL`/`Status` columns filled in - as a workflow artifact (7-day retention) so you
+can see what got uploaded. Android/iOS `compare*WithFigma` aren't wired into CI yet
+(would need an emulator/device farm in the runner).
 
 ### Required repo secrets (Settings → Secrets and variables → Actions)
 
@@ -70,6 +76,7 @@ emulator/device farm in the runner).
 | `FIGMACOMPARE_PAT` | Resolving `io.eot:figmacompare` from GitHub Packages |
 | `APPLITOOLS_API_KEY` | Authenticating with Applitools Eyes |
 | `FIGMA_CI_EXCEL_B64` | Base64 of the CI-scoped Figma Excel file (see below) |
+| `FIGMA_TOKEN` | Only used by the manual `uploadFromFigma` run, to call the Figma API |
 
 ### Generating `FIGMA_CI_EXCEL_B64`
 
