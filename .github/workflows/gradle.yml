@@ -143,7 +143,7 @@ jobs:
       # inspection copy, not something to keep long-term.
       - name: Upload updated Excel file with results
         if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: figma_mockede2e_web_ci-with-results
           path: figma-visual-testing/figma_mockede2e_web_ci.xlsx
