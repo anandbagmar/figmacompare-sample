@@ -74,6 +74,22 @@ jobs:
         run: echo "$FIGMA_CI_EXCEL_B64" | base64 --decode > figma-visual-testing/figma_mockede2e_web_ci.xlsx
         env:
           FIGMA_CI_EXCEL_B64: ${{ secrets.FIGMA_CI_EXCEL_B64 }}
+      # Without this, every uploadFromFigma run - including every manual test run while
+      # iterating - re-downloads every Figma image from scratch, which is what drove us
+      # into Figma's API rate limit (HTTP 429) earlier. Cache key is the Excel file's
+      # content hash, so unrelated edits (e.g. tweaking a non-image field) still hit the
+      # cache; restore-keys falls back to the most recent cache otherwise, so most
+      # already-downloaded images are still reused even after a real content change -
+      # FigmaClient looks up cached images by Figma URL/scale/format regardless of the
+      # exact key that restored them.
+      - name: Cache Figma downloaded images
+        if: github.event_name == 'workflow_dispatch' && inputs.runUpload
+        uses: actions/cache@v4
+        with:
+          path: downloaded_images/figma-cache
+          key: figma-cache-${{ hashFiles('figma-visual-testing/figma_mockede2e_web_ci.xlsx') }}
+          restore-keys: |
+            figma-cache-
       # Only runs on a manual "Run workflow" dispatch (see the workflow_dispatch trigger
       # above) - uploads the Web rows in the CI Excel file to Applitools as new
       # baselines, updating figma_mockede2e_web_ci.xlsx IN PLACE (new Baseline Env
