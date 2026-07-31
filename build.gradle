@@ -39,24 +39,22 @@ repositories {
 compileJava { options.encoding = "UTF-8" }
 
 // Real release, published from figmacompare's own release workflow - see its README's
-// "Publishing a release" section for how to cut a new one. Defaults to a pinned version
-// so a plain `./gradlew build` is reproducible (no network call, works offline) - pass
-// -PfigmacompareVersion=<version> for an explicit version, or -PuseLatestFigmacompare to
-// auto-resolve the latest release via scripts/latest-figmacompare-version.sh. The latter
-// is opt-in (not the default) so an ordinary build never makes a surprise network call,
-// and it hard-fails (not falls back) if resolution fails, since you explicitly asked for
-// latest - a silent fallback to something else would defeat the point of asking.
+// "Publishing a release" section for how to cut a new one. Defaults to resolving the
+// latest release automatically (via scripts/latest-figmacompare-version.sh) - pass
+// -PfigmacompareVersion=<version> to pin an explicit one instead (e.g. to reproduce an
+// old build, or while iterating locally against a mavenLocal() publish). Hard-fails
+// (does not fall back to some other version) if resolution fails, e.g. no FIGMACOMPARE_PAT
+// or no network - silently using a different version than what was actually requested
+// would be worse than a clear error.
 def figmacompareVersion
 if (project.hasProperty('figmacompareVersion')) {
     figmacompareVersion = project.property('figmacompareVersion')
-} else if (project.hasProperty('useLatestFigmacompare')) {
+} else {
     // project.exec {} was removed in Gradle 9 - providers.exec {} is the current API.
     figmacompareVersion = providers.exec {
         commandLine 'sh', '-c', './scripts/latest-figmacompare-version.sh'
     }.standardOutput.asText.get().trim()
-    println "Resolved latest figmacompare release: ${figmacompareVersion}"
-} else {
-    figmacompareVersion = '0.1.0'
+    println "No -PfigmacompareVersion given - resolved latest figmacompare release: ${figmacompareVersion}"
 }
 
 dependencies {
