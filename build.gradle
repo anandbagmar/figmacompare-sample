@@ -19,15 +19,29 @@ plugins {
 version '0.0.1'
 
 repositories {
+    // Tried first, so a local `./gradlew publishToMavenLocal` in figmacompare (its
+    // everyday dev loop) is always picked up without needing GitHub Packages auth.
     mavenLocal()
+    // Real releases of figmacompare (github.com/anandbagmar/figmacompare), published by
+    // its own release workflow. This registry always requires an authenticated token to
+    // consume, even for a public repo - see FIGMACOMPARE_PAT (needs read:packages).
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/anandbagmar/figmacompare")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: "anandbagmar"
+            password = project.findProperty("gpr.token") ?: System.getenv("FIGMACOMPARE_PAT")
+        }
+    }
     mavenCentral()
 }
 
 compileJava { options.encoding = "UTF-8" }
 
 dependencies {
-    // Published from figmacompare (https://github.com/anandbagmar/figmacompare) via
-    // `./gradlew publishToMavenLocal` there.
+    // TODO: still pointing at a mavenLocal-only version - switch to a real published
+    // version (e.g. "1.0.0") once the first figmacompare release is cut. See
+    // ../figmacompare's README for how releases/versions work.
     implementation "io.eot:figmacompare:0.0.1"
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
     implementation "com.applitools:eyes-images-java5:5.81.35"
