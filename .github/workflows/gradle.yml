@@ -14,8 +14,12 @@ on:
   # creates new Applitools baselines and shouldn't happen silently on every commit.
   workflow_dispatch:
     inputs:
+      runUpload:
+        description: "Run uploadFromFigma first (check to also create new baselines before comparing - default just re-runs compareWebWithFigma against whatever baselines already exist)"
+        type: boolean
+        default: false
       forceRefresh:
-        description: "Re-download every Figma image even if a cached copy exists"
+        description: "uploadFromFigma only: re-download every Figma image even if a cached copy exists"
         type: boolean
         default: false
 
@@ -77,7 +81,7 @@ jobs:
       # so that step compares against these fresh baselines instead of stale ones. Pure
       # Java, no browser needed, so no HEADLESS here.
       - name: Upload Figma designs as Applitools baselines
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.runUpload
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
           arguments: >-
