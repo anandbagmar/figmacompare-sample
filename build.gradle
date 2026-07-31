@@ -39,10 +39,9 @@ repositories {
 compileJava { options.encoding = "UTF-8" }
 
 dependencies {
-    // TODO: still pointing at a mavenLocal-only version - switch to a real published
-    // version (e.g. "1.0.0") once the first figmacompare release is cut. See
-    // ../figmacompare's README for how releases/versions work.
-    implementation "io.eot:figmacompare:0.0.1"
+    // Real release, published from figmacompare's own release workflow - see its
+    // README's "Publishing a release" section for how to cut a new one.
+    implementation "io.eot:figmacompare:0.1.0"
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
     implementation "com.applitools:eyes-images-java5:5.81.35"
     implementation ("com.applitools:eyes-appium-java5:5.79.35") {

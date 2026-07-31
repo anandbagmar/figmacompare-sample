@@ -21,26 +21,21 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      # This repo depends on io.eot:figmacompare via mavenLocal (see settings.gradle/
-      # samples/build.gradle) instead of an in-repo module, so it has to be built and
-      # published here first. anandbagmar/figmacompare is private, so the default
-      # GITHUB_TOKEN (scoped to this repo only) can't check it out - add a Personal
-      # Access Token with read access to that repo as a secret named FIGMACOMPARE_PAT
-      # in this repo's Settings -> Secrets and variables -> Actions before this will work.
-      - name: Checkout figmacompare
-        uses: actions/checkout@v4
-        with:
-          repository: anandbagmar/figmacompare
-          path: figmacompare
-          token: ${{ secrets.FIGMACOMPARE_PAT }}
-      - name: Build and publish figmacompare to mavenLocal
-        run: cd figmacompare && ./gradlew publishToMavenLocal
       - name: Install Appium 2.0 and dependencies
         run: |
           node -v
           npm install
           npm list
+      # io.eot:figmacompare is resolved from figmacompare's GitHub Packages registry
+      # (see build.gradle's repositories block) instead of being built from source here.
+      # anandbagmar/figmacompare is private, so reading its packages needs an
+      # authenticated token even though this is the same account - a classic PAT with
+      # repo + read:packages, stored as the FIGMACOMPARE_PAT secret in this repo's
+      # Settings -> Secrets and variables -> Actions.
       - name: Build with Gradle
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
           arguments: build --refresh-dependencies -x test
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}

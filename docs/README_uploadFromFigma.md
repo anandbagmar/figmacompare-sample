@@ -61,15 +61,39 @@ Everything below is detail/reference for the steps above.
 
 ## 1. One-time setup
 
-### 1.0 Build and publish figmacompare
-This repo depends on `io.eot:figmacompare` resolved via `mavenLocal()` — it isn't on
-Maven Central. Clone the `figmacompare` repo somewhere on your machine and publish it
-locally once:
+### 1.0 Get access to figmacompare
+
+This repo depends on `io.eot:figmacompare`, published from the separate
+[figmacompare](https://github.com/anandbagmar/figmacompare) repo to GitHub Packages —
+it isn't on Maven Central. `build.gradle` tries two sources, in order:
+
+1. **`mavenLocal()`** — your local `~/.m2` cache, checked first
+2. **GitHub Packages** — the real published releases
+
+Pick whichever matches what you're doing:
+
+**Just running the tests, not changing figmacompare itself:** GitHub Packages' Maven
+registry always requires an authenticated token to resolve from, even though this repo
+and `figmacompare` are both yours — export a token with `repo` + `read:packages` scope
+(the same PAT this repo's CI uses as the `FIGMACOMPARE_PAT` secret; see
+[figmacompare's README §Publishing a release](https://github.com/anandbagmar/figmacompare#publishing-a-release)
+for the scope requirements) as an environment variable before building:
+```bash
+export FIGMACOMPARE_PAT=<your-token>
+./gradlew compareWebWithFigma   # or any other task - resolves io.eot:figmacompare from GitHub Packages
+```
+
+**Actively iterating on a figmacompare change:** publish it to your local `~/.m2` cache
+instead, which `mavenLocal()` picks up automatically (no token needed) - but you'll also
+need to temporarily point this repo's `implementation "io.eot:figmacompare:..."` line in
+`build.gradle` at whatever version you published locally (`0.0.1-local` by default):
 ```bash
 cd /path/to/figmacompare
 ./gradlew publishToMavenLocal
+# then in this repo's build.gradle, temporarily:
+#   implementation "io.eot:figmacompare:0.0.1-local"
 ```
-Re-run this whenever you pull changes to `figmacompare`, before building this repo.
+Revert that line back to the real pinned version before committing.
 
 ### 1.1 Get a Figma personal access token
 In Figma: **Account Settings → Security → Personal access tokens** → generate a new
