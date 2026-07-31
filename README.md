@@ -33,6 +33,7 @@ without either side needing to touch the other's tooling.
 - [Running the Appium (Android/iOS) tests](#running-the-appium-androidios-tests)
 - [Running the web tests with Selenium](#running-the-web-tests-with-selenium)
 - [Uploading Figma designs as Applitools baselines](#uploading-figma-designs-as-applitools-baselines)
+- [Continuous Integration](#continuous-integration)
 
 # [Full step-by-step workflow: Figma → baseline → compare → review](docs/README_FigmaVisualValidation.md)
 
@@ -43,4 +44,47 @@ without either side needing to touch the other's tooling.
 # Running the [web tests with Selenium](docs/README_Web_Selenium.md)
 
 # Uploading [Figma designs as Applitools baselines](docs/README_uploadFromFigma.md)
+
+## Continuous Integration
+
+`.github/workflows/gradle.yml` runs on every push/PR to `main`:
+
+1. **Build with Gradle** — compiles and resolves `io.eot:figmacompare` from GitHub
+   Packages (needs `FIGMACOMPARE_PAT`, since that repo is private). Doesn't run any
+   tests itself (`-x test`).
+2. **Restore CI Figma Excel file from secret** — decodes the `FIGMA_CI_EXCEL_B64`
+   secret into `figma-visual-testing/figma_mockede2e_web_ci.xlsx`.
+3. **Run web Figma visual tests** — runs `compareWebWithFigma` in headless Chrome
+   (`HEADLESS=true`) against that file, using `APPLITOOLS_API_KEY` to authenticate
+   with Eyes.
+
+`uploadFromFigma` is **not** run in CI — it's a deliberate, manual step (baselines are
+uploaded once, then compared against repeatedly), so `FIGMA_TOKEN` isn't needed as a
+CI secret. Android/iOS `compare*WithFigma` also aren't wired into CI yet (would need an
+emulator/device farm in the runner).
+
+### Required repo secrets (Settings → Secrets and variables → Actions)
+
+| Secret | Used for |
+|---|---|
+| `FIGMACOMPARE_PAT` | Resolving `io.eot:figmacompare` from GitHub Packages |
+| `APPLITOOLS_API_KEY` | Authenticating with Applitools Eyes |
+| `FIGMA_CI_EXCEL_B64` | Base64 of the CI-scoped Figma Excel file (see below) |
+
+### Generating `FIGMA_CI_EXCEL_B64`
+
+`figma-visual-testing/*.xlsx` is gitignored — it holds your own working data,
+including run results. CI instead uses a **separate, CI-scoped** file containing only
+the `Web`-platform rows with the result columns (`Status`, `Baseline Batch URL`, etc.)
+left blank, so nothing stale gets committed or reused across runs. This file is not
+committed either — it's stored as a base64-encoded secret and reconstructed at the
+start of each CI run:
+
+```bash
+base64 -i figma-visual-testing/figma_mockede2e_web_ci.xlsx | pbcopy
+```
+
+Paste the clipboard contents as the `FIGMA_CI_EXCEL_B64` secret's value. Regenerate
+and re-set the secret whenever the `Web` rows change (new scenario step, new
+component locator, etc.).
 

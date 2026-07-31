@@ -39,3 +39,21 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
+      # figma-visual-testing/*.xlsx is gitignored (contains real Figma/Applitools data),
+      # so CI reconstructs a CI-scoped copy from a secret instead - see README.md's
+      # "Continuous Integration" section for how FIGMA_CI_EXCEL_B64 was generated.
+      - name: Restore CI Figma Excel file from secret
+        run: echo "$FIGMA_CI_EXCEL_B64" | base64 --decode > figma-visual-testing/figma_mockede2e_web_ci.xlsx
+        env:
+          FIGMA_CI_EXCEL_B64: ${{ secrets.FIGMA_CI_EXCEL_B64 }}
+      # uploadFromFigma is intentionally NOT run in CI - this only compares the app
+      # against baselines that already exist in Applitools, so FIGMA_TOKEN isn't needed.
+      - name: Run web Figma visual tests
+        uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
+        with:
+          arguments: compareWebWithFigma -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
+          APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
+          HEADLESS: "true"

@@ -41,6 +41,16 @@ export BROWSER=chrome   # or firefox, edge, safari
 Make sure the corresponding browser is installed locally — Selenium Manager will resolve
 the matching driver automatically.
 
+### Headless mode
+
+Defaults to headed (a visible browser window), which is what you want locally. Set
+`HEADLESS=true` to run headless instead — this is what CI uses (no display available on
+the runner), but it also works locally:
+
+```bash
+export HEADLESS=true   # Chrome, Firefox, and Edge only - not Safari
+```
+
 ### Launch the tests
 
 ```bash
