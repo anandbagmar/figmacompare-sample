@@ -1,8 +1,9 @@
 rootProject.name = 'figmacompare-sample'
 
 // The reusable Figma <-> Applitools visual-testing framework lives in its own repo/
-// published artifact - https://github.com/anandbagmar/figmacompare (io.eot:figmacompare)
-// - and this project depends on it as a regular Maven dependency (resolved via
-// mavenLocal). This is a single-module project: the Bajaj Finserv / Calculator / App
+// published artifact - https://github.com/anandbagmar/figmacompare
+// (com.github.anandbagmar:figmacompare via JitPack; io.eot:figmacompare for a local
+// mavenLocal() dev build) - and this project depends on it as a regular Maven
+// dependency. This is a single-module project: the Bajaj Finserv / Calculator / App
 // Automation Playground / HelloWorld scenario providers, the thin TestNG runner shims,
 // and everything else that only makes sense as an example/consumer of that library.

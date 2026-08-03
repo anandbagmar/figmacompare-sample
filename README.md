@@ -4,9 +4,11 @@ This project validates that a set of sample web and mobile apps (plus the real B
 Finserv app) match their approved Figma designs, using
 [Applitools Eyes](https://applitools.com/platform/eyes/) as the visual comparison
 engine. The reusable framework — Excel/Figma/Eyes/Appium plumbing, the plain-Java
-`compareWithFigma` runners — lives in a separate repo, `figmacompare`
-(`io.eot:figmacompare`, built and published to `mavenLocal` from there); this repo is a
-client of it, holding the scenario providers, Excel file, and thin TestNG shims for
+`compareWithFigma` runners — lives in a separate, public repo,
+[figmacompare](https://github.com/anandbagmar/figmacompare), resolved here via
+[JitPack](https://jitpack.io) as `com.github.anandbagmar:figmacompare` (see the
+Architecture section below); this repo is a client of it, holding the scenario
+providers, Excel file, and thin TestNG shims for
 several sample apps (Bajaj Finserv, Calculator, App Automation Playground, Applitools'
 own Hello World demo). The workflow:
 
@@ -63,8 +65,8 @@ flowchart TB
         libPublish["publish.yml\non: GitHub Release"]
     end
 
-    subgraph ghp["GitHub Packages"]
-        pkg["io.eot:figmacompare:x.y.z"]
+    subgraph jp["JitPack"]
+        pkg["com.github.anandbagmar:figmacompare:vX.Y.Z\n(built on demand from the public repo's tags)"]
     end
 
     subgraph sample["figmacompare-sample (this repo)"]
@@ -80,7 +82,7 @@ flowchart TB
     libSrc --> libCi
     libCi -->|tests must pass| libPublish
     libPublish -->|"gh release create\n(scripts/create-release.sh)"| pkg
-    pkg -->|"resolved via FIGMACOMPARE_PAT\n(scripts/latest-figmacompare-version.sh)"| workflow
+    pkg -->|"resolved, no token needed\n(scripts/latest-figmacompare-version.sh)"| workflow
     sampleSrc --> workflow
     workflow -->|"compareWebWithFigma\n(every push/PR/dispatch)"| applitools
     workflow -.->|"uploadFromFigma\n(manual dispatch, runUpload=true only)"| figmaApi
@@ -98,8 +100,8 @@ this repo's CI is wired.
 a manual `workflow_dispatch` - sharing one job whose steps are conditionally gated so
 the right subset runs for each:
 
-1. **Build with Gradle** *(every trigger)* — compiles and resolves `io.eot:figmacompare`
-   from GitHub Packages (needs `FIGMACOMPARE_PAT`, since that repo is private), pinned
+1. **Build with Gradle** *(every trigger)* — compiles and resolves
+   `com.github.anandbagmar:figmacompare` from JitPack (public, no token needed), pinned
    to whatever `scripts/latest-figmacompare-version.sh` resolves as the newest release.
    Doesn't run any tests itself (`-x test`).
 2. **Restore CI Figma Excel file from secret** *(every trigger)* — decodes the
@@ -155,7 +157,6 @@ only real fix at that point, not a config change.
 
 | Secret | Used for |
 |---|---|
-| `FIGMACOMPARE_PAT` | Resolving `io.eot:figmacompare` from GitHub Packages |
 | `APPLITOOLS_API_KEY` | Authenticating with Applitools Eyes |
 | `FIGMA_CI_EXCEL_B64` | Base64 of the CI-scoped Figma Excel file (see below) |
 | `FIGMA_TOKEN` | Only used by the manual `uploadFromFigma` run, to call the Figma API |

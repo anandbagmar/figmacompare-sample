@@ -46,27 +46,18 @@ jobs:
           npm list
       # Resolves the latest figmacompare release tag so CI always builds against the
       # newest published version rather than a hardcoded default - see
-      # scripts/latest-figmacompare-version.sh. GH_TOKEN authenticates gh CLI against
-      # the private figmacompare repo (same FIGMACOMPARE_PAT used to consume its
-      # packages below).
+      # scripts/latest-figmacompare-version.sh. anandbagmar/figmacompare is public, so
+      # this is a plain unauthenticated request - no token needed.
       - name: Resolve latest figmacompare version
         id: figmacompare_version
         run: echo "version=$(./scripts/latest-figmacompare-version.sh)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.FIGMACOMPARE_PAT }}
-      # io.eot:figmacompare is resolved from figmacompare's GitHub Packages registry
-      # (see build.gradle's repositories block) instead of being built from source here.
-      # anandbagmar/figmacompare is private, so reading its packages needs an
-      # authenticated token even though this is the same account - a classic PAT with
-      # repo + read:packages, stored as the FIGMACOMPARE_PAT secret in this repo's
-      # Settings -> Secrets and variables -> Actions.
+      # io.eot:figmacompare is resolved via JitPack (see build.gradle's repositories
+      # block), which builds directly from anandbagmar/figmacompare's public tags on
+      # demand - no token needed to consume.
       - name: Build with Gradle
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1
         with:
           arguments: build --refresh-dependencies -x test -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
       # figma-visual-testing/*.xlsx is gitignored (contains real Figma/Applitools data),
       # so CI reconstructs a CI-scoped copy from a secret instead - see README.md's
       # "Continuous Integration" section for how FIGMA_CI_EXCEL_B64 was generated.
@@ -107,8 +98,6 @@ jobs:
             -PforceRefresh=${{ inputs.forceRefresh }}
             -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
           FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
           # UploadFromFigma.main() (unlike compareWebWithFigma) has no built-in default
@@ -130,8 +119,6 @@ jobs:
         with:
           arguments: compareWebWithFigma -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx -PfigmacompareVersion=${{ steps.figmacompare_version.outputs.version }}
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          FIGMACOMPARE_PAT: ${{ secrets.FIGMACOMPARE_PAT }}
           APPLITOOLS_API_KEY: ${{ secrets.APPLITOOLS_API_KEY }}
           HEADLESS: "true"
           # See the CI_RUN_NUMBER comment on the upload step above.

@@ -1,30 +1,28 @@
 #!/usr/bin/env bash
-# Prints the latest published figmacompare release version (no 'v' prefix), e.g. 0.1.0.
+# Prints the latest figmacompare release tag as-is (e.g. "v1.2.0" - keeping the "v",
+# unlike the old GitHub-Packages-based version of this script). JitPack needs the exact
+# tag to resolve com.github.anandbagmar:figmacompare:<tag>.
 #
 # Usage:
 #   ./gradlew build -PfigmacompareVersion=$(./scripts/latest-figmacompare-version.sh)
 #
-# anandbagmar/figmacompare is private, so this needs an authenticated gh CLI (or
-# GH_TOKEN set) with at least read access to that repo - the same FIGMACOMPARE_PAT
-# already used elsewhere in this repo works.
+# anandbagmar/figmacompare is public, so this is a plain, unauthenticated request - no
+# token, no gh CLI dependency.
 set -euo pipefail
 
 REPO="anandbagmar/figmacompare"
 
-if ! command -v gh &> /dev/null; then
-    echo "Error: gh CLI is not installed. See https://cli.github.com/" >&2
-    exit 1
-fi
-
-TAG=$(gh release view --repo "$REPO" --json tagName -q .tagName 2>&1) || {
-    echo "Error: could not fetch the latest release for $REPO:" >&2
-    echo "$TAG" >&2
+RESPONSE=$(curl -sf "https://api.github.com/repos/${REPO}/releases/latest") || {
+    echo "Error: could not fetch the latest release for ${REPO} from the GitHub API." >&2
     exit 1
 }
 
+TAG=$(printf '%s' "$RESPONSE" | grep -o '"tag_name" *: *"[^"]*"' | head -1 | sed -E 's/.*"tag_name" *: *"([^"]*)".*/\1/')
+
 if [[ -z "$TAG" ]]; then
-    echo "Error: $REPO has no releases yet." >&2
+    echo "Error: ${REPO} has no releases yet, or the API response was unexpected:" >&2
+    echo "$RESPONSE" >&2
     exit 1
 fi
 
-echo "${TAG#v}"
+echo "$TAG"

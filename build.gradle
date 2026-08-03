@@ -20,19 +20,14 @@ version '0.0.1'
 
 repositories {
     // Tried first, so a local `./gradlew publishToMavenLocal` in figmacompare (its
-    // everyday dev loop) is always picked up without needing GitHub Packages auth.
+    // everyday dev loop) is always picked up automatically.
     mavenLocal()
-    // Real releases of figmacompare (github.com/anandbagmar/figmacompare), published by
-    // its own release workflow. This registry always requires an authenticated token to
-    // consume, even for a public repo - see FIGMACOMPARE_PAT (needs read:packages).
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/anandbagmar/figmacompare")
-        credentials {
-            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_ACTOR") ?: "anandbagmar"
-            password = project.findProperty("gpr.token") ?: System.getenv("FIGMACOMPARE_PAT")
-        }
-    }
+    // Real releases of figmacompare (github.com/anandbagmar/figmacompare, public) are
+    // resolved via JitPack, which builds directly from that repo's tags on demand - no
+    // token needed, unlike GitHub Packages' Maven registry (which this project used
+    // before, and which requires auth even for a public repo - a genuine platform
+    // limitation, not something we could avoid while staying on it).
+    maven { url = uri("https://jitpack.io") }
     mavenCentral()
 }
 
@@ -40,12 +35,13 @@ compileJava { options.encoding = "UTF-8" }
 
 // Real release, published from figmacompare's own release workflow - see its README's
 // "Publishing a release" section for how to cut a new one. Defaults to resolving the
-// latest release automatically (via scripts/latest-figmacompare-version.sh) - pass
+// latest release automatically (via scripts/latest-figmacompare-version.sh, which now
+// returns the tag as-is, e.g. "v1.2.0" - JitPack needs the exact tag) - pass
 // -PfigmacompareVersion=<version> to pin an explicit one instead (e.g. to reproduce an
-// old build, or while iterating locally against a mavenLocal() publish). Hard-fails
-// (does not fall back to some other version) if resolution fails, e.g. no FIGMACOMPARE_PAT
-// or no network - silently using a different version than what was actually requested
-// would be worse than a clear error.
+// old build, or while iterating locally against a mavenLocal() publish, e.g.
+// "0.0.1-local"). Hard-fails (does not fall back to some other version) if resolution
+// fails, e.g. no network - silently using a different version than what was actually
+// requested would be worse than a clear error.
 def figmacompareVersion
 if (project.hasProperty('figmacompareVersion')) {
     figmacompareVersion = project.property('figmacompareVersion')
@@ -56,9 +52,19 @@ if (project.hasProperty('figmacompareVersion')) {
     }.standardOutput.asText.get().trim()
     println "No -PfigmacompareVersion given - resolved latest figmacompare release: ${figmacompareVersion}"
 }
+// mavenLocal() publishes as io.eot:figmacompare:<version> (see figmacompare's own
+// build.gradle) - "-local" is the convention for a locally-published dev build (its
+// default, and what scripts/latest-figmacompare-version.sh never returns). A real
+// release resolves via JitPack instead, which always uses com.github.<owner> as the
+// groupId for a single-module project - a JitPack constraint, not configurable - so it
+// intentionally differs from the io.eot.figmacompare Java package namespace used
+// throughout the actual code (see figmacompare's README's "Publishing a release").
+def figmacompareCoordinate = figmacompareVersion.endsWith('-local')
+        ? "io.eot:figmacompare:${figmacompareVersion}"
+        : "com.github.anandbagmar:figmacompare:${figmacompareVersion}"
 
 dependencies {
-    implementation "io.eot:figmacompare:${figmacompareVersion}"
+    implementation figmacompareCoordinate
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
     implementation "com.applitools:eyes-images-java5:5.82.0"
     implementation ("com.applitools:eyes-appium-java5:5.79.37") {

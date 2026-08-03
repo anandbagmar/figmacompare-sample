@@ -63,36 +63,30 @@ Everything below is detail/reference for the steps above.
 
 ### 1.0 Get access to figmacompare
 
-This repo depends on `io.eot:figmacompare`, published from the separate
-[figmacompare](https://github.com/anandbagmar/figmacompare) repo to GitHub Packages —
-it isn't on Maven Central. `build.gradle` tries two sources, in order:
+This repo depends on `com.github.anandbagmar:figmacompare`, resolved via
+[JitPack](https://jitpack.io), which builds directly from the (public)
+[figmacompare](https://github.com/anandbagmar/figmacompare) repo's tags on demand - it
+isn't on Maven Central, and **no token is needed** to consume it. `build.gradle` tries
+two sources, in order:
 
 1. **`mavenLocal()`** — your local `~/.m2` cache, checked first
-2. **GitHub Packages** — the real published releases
+2. **JitPack** — the real published releases
 
 Pick whichever matches what you're doing:
 
-**Just running the tests, not changing figmacompare itself:** GitHub Packages' Maven
-registry always requires an authenticated token to resolve from, even though this repo
-and `figmacompare` are both yours — export a token with `repo` + `read:packages` scope
-(the same PAT this repo's CI uses as the `FIGMACOMPARE_PAT` secret; see
-[figmacompare's README §Publishing a release](https://github.com/anandbagmar/figmacompare#publishing-a-release)
-for the scope requirements) as an environment variable before building:
+**Just running the tests, not changing figmacompare itself:** no setup needed - just run:
 ```bash
-export FIGMACOMPARE_PAT=<your-token>
-./gradlew compareWebWithFigma   # or any other task - resolves io.eot:figmacompare from GitHub Packages
+./gradlew compareWebWithFigma   # or any other task
 ```
-Without a `-PfigmacompareVersion=...` override, this resolves the pinned default in
-`build.gradle` (not necessarily the latest release) - run
-`./scripts/latest-figmacompare-version.sh` to get the actual latest version, e.g.:
-```bash
-./gradlew compareWebWithFigma -PfigmacompareVersion=$(./scripts/latest-figmacompare-version.sh)
-```
+With no `-PfigmacompareVersion=...` given, `build.gradle` automatically resolves the
+latest release via `scripts/latest-figmacompare-version.sh` (a plain, unauthenticated
+GitHub API call). Pass `-PfigmacompareVersion=vX.Y.Z` (note: **include the `v`** - unlike
+this repo's own version number, JitPack needs the exact tag) to pin a specific release
+instead, e.g. to reproduce an old build.
 
 **Actively iterating on a figmacompare change:** publish it to your local `~/.m2` cache
-instead, which `mavenLocal()` picks up automatically (no token needed), then point this
-repo at that version with `-PfigmacompareVersion=...` - **no `build.gradle` edit
-needed**, unlike before this property existed:
+instead, which `mavenLocal()` picks up automatically, then point this repo at that
+version with `-PfigmacompareVersion=...` - **no `build.gradle` edit needed**:
 ```bash
 cd /path/to/figmacompare
 ./gradlew publishToMavenLocal
