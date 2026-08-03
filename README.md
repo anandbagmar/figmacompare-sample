@@ -28,6 +28,12 @@ This lets the UI/UX team (who own the Figma designs) and the QA team (who own th
 Selenium/Appium automation) collaborate on catching design-vs-implementation drift,
 without either side needing to touch the other's tooling.
 
+**This repo's docs cover setup and this repo's own example apps/CI.** For how the
+underlying pipeline actually behaves — the Excel column schema, `uploadFromFigma`/
+`compareWithFigma` semantics, the `ScenarioFlow`/registry pattern, every config
+setting — see [figmacompare's own docs](https://github.com/anandbagmar/figmacompare#docs),
+linked throughout the pages below.
+
 ## Table of contents
 
 - [Full step-by-step workflow: Figma → baseline → compare → review](#full-step-by-step-workflow-figma--baseline--compare--review)

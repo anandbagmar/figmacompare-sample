@@ -2,6 +2,12 @@ Back to main [README](../README.md)
 
 # Running tests with Appium-Java
 
+For `compareAndroidWithFigma`/`compareIosWithFigma`'s actual behavior (the
+`ScenarioFlow`/registry pattern, why `Scenario Name` is required for every mobile
+row), see figmacompare's
+[CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md).
+This page covers this repo's own example apps/tests and local run setup.
+
 ## Table of contents
 
 - [Setup Appium server](#setup-appium-server)
@@ -83,21 +89,11 @@ class and choosing **Run**.
   ./gradlew test -PtestClass=io.eot.calculator.appium.android.CalculatorFigmaTest
   ```
 
-* `AndroidCompareRunner` (plain-Java orchestration, in figmacompare) +
+* `AndroidCompareRunner` (in figmacompare) +
   [CompareAndroidWithFigmaTest.java](../src/test/java/io/eot/pipeline/appium/android/CompareAndroidWithFigmaTest.java)
-  (thin TestNG shim, in this repo) — together the **one runner** for the mobile
-  (Android) path of `compareWithFigma`; see
-  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md). Data-driven from
-  the same shared Figma Excel file as the web path (default
-  `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
-  one invocation per group of non-`Skip` `Platform=Android` rows sharing a `Scenario Name`
-  (mandatory for every Android/iOS row — see below). For each group it looks up that
-  `Scenario Name` in `AndroidScenarioRegistry` (in figmacompare),
-  launches the registered app (APK), and runs the registered `ScenarioFlow` in one
-  continuous app session (no relaunch between steps), then does an Applitools Eyes
-  comparison against the group's `Baseline Env Name` baseline and writes
-  `Comparison Batch URL` + `Validation Status` back into the file in place, same as the
-  web path.
+  (thin TestNG shim, in this repo) — the mobile (Android) path of `compareWithFigma` —
+  see figmacompare's [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
+  for how it behaves.
   ```bash
   ./gradlew compareAndroidWithFigma
   ```
@@ -107,33 +103,11 @@ class and choosing **Run**.
 
 * [BajajFinservAndroidTest.java](../src/test/java/io/eot/bajajfinserv/appium/android/BajajFinservAndroidTest.java) —
   **not a TestNG test itself** — a *scenario provider* for the Bajaj Finserv app
-  (`app_npu_v8.3.17.apk`). Its static initializer registers this app's scenarios into
-  `AndroidScenarioRegistry`:
-  ```java
-  AndroidScenarioRegistry.register("android-home-screen", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
-      // whatever login/navigation this app's real screen needs, then:
-      eyes.checkWindow(resolveStepName(rows.get(0)));
-  });
-  ```
-  Unlike web, there's no generic way to navigate a native app to an arbitrary screen —
-  reaching even one screen can need login/menu navigation specific to that app. So every
-  `ScenarioFlow` must be **fully self-contained**: it owns the whole sequence for its
-  scenario's rows (however many `eyes.checkWindow()` calls it makes, in whatever order),
-  and it's looked up purely by `Scenario Name`, regardless of which class registered it —
-  `AndroidCompareRunner` doesn't know or care where a scenario came from.
-
-  A new app means a new provider class following this same pattern, plus one line added to
-  the `PROVIDER_CLASSES` list in `CompareAndroidWithFigmaTest` so its registrations
-  actually run (Java only executes a class's static initializer once that class is
-  loaded/referenced). `AndroidCompareRunner` itself never needs to change.
-
-  Both classes reuse the shared
-  `AppiumServerSupport` (in figmacompare),
-  `AndroidDriverFactory` (in figmacompare),
-  `BatchSupport` (in figmacompare),
-  `ComparisonResultRecorder` (in figmacompare),
-  `FigmaExcelFile` (in figmacompare), and
-  `FigmaValidation` (in figmacompare) utilities.
+  (`app_npu_v8.3.17.apk`), registering this app's scenarios into
+  `AndroidScenarioRegistry` (see figmacompare's
+  [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
+  for how the registry/`ScenarioFlow` pattern works, and
+  [README_AddingTests.md](README_AddingTests.md) for how to add a new one).
 
   Two more scenario providers, for the "App Automation Playground" demo app
   (`App Automation Playground-debug.apk`), show both a standalone and a multi-step
@@ -157,15 +131,10 @@ class and choosing **Run**.
   ./gradlew test -PtestClass=io.eot.helloworld.appium.ios.WebiOSHelloWorldTest
   ```
 
-* `IosCompareRunner` (plain-Java orchestration, in figmacompare) +
+* `IosCompareRunner` (in figmacompare) +
   [CompareIosWithFigmaTest.java](../src/test/java/io/eot/pipeline/appium/ios/CompareIosWithFigmaTest.java)
-  (thin TestNG shim, in this repo) — together the **one runner** for the mobile (iOS)
-  path of `compareWithFigma`, mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest`
-  exactly (see the Android section above and
-  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)): one
-  invocation per group of `Platform=iOS` rows sharing a `Scenario Name`, dispatched
-  through `IosScenarioRegistry` (in figmacompare)
-  regardless of which provider class registered the scenario.
+  (thin TestNG shim, in this repo) — the mobile (iOS) path of `compareWithFigma`,
+  mirroring `AndroidCompareRunner`/`CompareAndroidWithFigmaTest` exactly.
   ```bash
   ./gradlew compareIosWithFigma
   ```

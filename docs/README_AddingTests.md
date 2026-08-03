@@ -11,8 +11,9 @@ Back to [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)
 - [E. iOS — same as C/D, using the iOS equivalents](#e-ios--same-as-cd-using-the-ios-equivalents)
 - [F. Plugging in your own existing Appium tests](#f-plugging-in-your-own-existing-appium-tests)
 
-See [README_Scenarios.md](README_Scenarios.md) for how `Scenario Name` and the
-web/mobile registries work before adding to them here.
+See figmacompare's
+[CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
+for how `Scenario Name` and the web/mobile registries work before adding to them here.
 
 ## A. A new standalone web page/component — no code
 

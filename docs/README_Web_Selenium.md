@@ -2,20 +2,19 @@ Back to main [README](../README.md)
 
 # Running web tests with Selenium
 
+For `compareWebWithFigma`'s actual behavior (scenario grouping, viewport matching,
+`Locator`, headless/browser options), see figmacompare's
+[CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md).
+This page covers this repo's own example test files and local run setup.
+
 ## Table of contents
 
 - [Usage](#usage)
   - [Set your APPLITOOLS_API_KEY](#set-your-applitools_api_key)
-  - [Choose a browser](#choose-a-browser)
   - [Launch the tests](#launch-the-tests)
 - [Example Test Source Files](#example-test-source-files)
-  - [Uploading a Figma design as the baseline](#uploading-a-figma-design-as-the-baseline)
 
 ## Usage
-
-These tests drive a browser with Selenium and use the Applitools Eyes Selenium SDK
-(Ultrafast Grid) to run visual checks across multiple browsers/viewports from a single
-local browser session.
 
 ### Set your APPLITOOLS_API_KEY
 
@@ -26,29 +25,6 @@ every test class in this project reads it via `System.getenv("APPLITOOLS_API_KEY
 
 ```bash
 export APPLITOOLS_API_KEY=<your-api-key>
-```
-
-### Choose a browser
-
-`Driver.java` (in figmacompare) creates a local
-`WebDriver` for Chrome, Firefox, Edge, or Safari. It defaults to Chrome, or reads the
-`BROWSER` environment variable if set:
-
-```bash
-export BROWSER=chrome   # or firefox, edge, safari
-```
-
-Make sure the corresponding browser is installed locally — Selenium Manager will resolve
-the matching driver automatically.
-
-### Headless mode
-
-Defaults to headed (a visible browser window), which is what you want locally. Set
-`HEADLESS=true` to run headless instead — this is what CI uses (no display available on
-the runner), but it also works locally:
-
-```bash
-export HEADLESS=true   # Chrome, Firefox, and Edge only - not Safari
 ```
 
 ### Launch the tests
@@ -70,18 +46,12 @@ class and choosing **Run**.
   ./gradlew test -PtestClass=io.eot.bajajfinserv.web.selenium.WebFigmaTest
   ```
 
-* `WebCompareRunner` (plain-Java orchestration, in figmacompare) +
+* `WebCompareRunner` (in figmacompare) +
   [CompareWebWithFigmaTest.java](../src/test/java/io/eot/pipeline/web/selenium/CompareWebWithFigmaTest.java)
-  (thin TestNG shim, in this repo) — together the **web path of `compareWithFigma`** (see
-  [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)). This is not a
-  fixed single-page test: it's data-driven from the shared Figma Excel file (default
-  `figma-visual-testing/figma_visual_tests.xlsx`, override with `-PfigmaExcel=<path>`),
-  one TestNG invocation per group of non-`Skip` `Platform=Web` rows — a group is either
-  one standalone row, or several consecutive rows sharing the same `Scenario Name`. For
-  each row/step in the group it opens `App URL / Screen Name` with Selenium (in one
-  continuous browser session for a scenario) and submits an Applitools Eyes comparison
-  against the group's `Baseline Env Name` baseline (full page if `Locator` is blank,
-  otherwise just that CSS/XPath-selected region).
+  (thin TestNG shim, in this repo) — together the **web path of `compareWithFigma`**,
+  data-driven from the shared Figma Excel file. See figmacompare's
+  [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
+  for how it behaves.
   ```bash
   ./gradlew compareWebWithFigma
   # or against a specific file:
@@ -91,25 +61,10 @@ class and choosing **Run**.
   `./gradlew test -PtestClass=io.eot.pipeline.web.selenium.CompareWebWithFigmaTest`,
   which still works too if you want it.)
 
-  One `VisualGridRunner` and one `BatchInfo` are shared across every group for the whole
-  run — creating a new one per group would repeatedly start/stop the Ultrafast Grid's
-  background process and hang after the first one. Because results from a shared
-  runner are only available once every submitted check has finished, groups just
-  submit their checks via `closeAsync()`; the actual pass/fail, `Comparison Batch
-  URL`, and `Validation Status` are collected once in `@AfterSuite` (matched back to
-  each group's rows by test/scenario name), written to the Excel file, and the suite
-  fails there if any group had a visual difference.
-
-`WebFigmaTest` configures Eyes via its own per-test `VisualGridRunner` (it only ever
-runs one check, so that's fine); `WebCompareRunner` configures browsers/viewports
-via `config.addBrowser(...)` inside its shared `initialiseEyes(...)` method.
-
-### Uploading a Figma design as the baseline
-
 Instead of manually placing an image under `downloaded_images/` and calling
 `Baseline.uploadImageAndSetAsBaseline(...)` as `WebFigmaTest` currently does, you can
-upload Figma designs in bulk via the
-[uploadFromFigma](README_uploadFromFigma.md) utility — its output Excel (with `Locator`
-filled in per row) is exactly what `CompareWebWithFigmaTest`/`WebCompareRunner` expects as input.
+upload Figma designs in bulk via [uploadFromFigma](README_uploadFromFigma.md) — its
+output Excel (with `Locator` filled in per row) is exactly what
+`CompareWebWithFigmaTest`/`WebCompareRunner` expects as input.
 
 Back to main [README](../README.md)
