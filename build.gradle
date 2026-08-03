@@ -191,6 +191,23 @@ task uploadFromFigma(type: JavaExec) {
     }
 }
 
+// Named cleanFigmaExcel, not "clean" - Gradle's own built-in `clean` lifecycle task
+// (directory cleanup, configured below) already owns that name.
+task cleanFigmaExcel(type: JavaExec) {
+    group = "applitools"
+    description = "Reset the shared Figma Excel file's write-back result columns (App Name, Baseline Batch " +
+            "URL, Status, Error Message, Comparison Batch URL, Validation Status) - leaves every manual-input " +
+            "column, including Baseline Env Name/Viewport/Test Name, untouched"
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir = rootDir
+    mainClass.set("io.eot.figmacompare.excel.CleanExcel")
+    doFirst {
+        if (project.hasProperty("figmaExcel")) {
+            systemProperty "figmaExcel", project.property("figmaExcel")
+        }
+    }
+}
+
 clean.doFirst {
     delete "${rootDir}/target"
     delete "${rootDir}/bin"

@@ -25,6 +25,7 @@ together with the manual review steps and the `compareWithFigma` comparison prog
 - [3. Run the program](#3-run-the-program)
   - [Choosing the Excel file path](#choosing-the-excel-file-path)
 - [4. Check the results](#4-check-the-results)
+- [Cleaning up results](#cleaning-up-results)
 - [Notes](#notes)
 
 ## Quick start
@@ -222,6 +223,33 @@ Alternatively, run it directly from your IDE (IntelliJ/VS Code): open
   Applitools dashboard.
 - The console also prints a one-line summary at the end, e.g. `4 of 5 succeeded.`
 - Rows marked `Skip` are left completely untouched and don't count toward that summary.
+
+## Cleaning up results
+
+```bash
+./gradlew cleanFigmaExcel
+```
+
+Resets the write-back result columns (`App Name`, `Baseline Batch URL`, `Status`,
+`Error Message`, `Comparison Batch URL`, `Validation Status`) back to blank across
+every row - a clean slate before a fresh `uploadFromFigma`/`compareWithFigma` run,
+without hand-editing cells.
+
+This does **not** touch `Baseline Env Name`, `Viewport`, or `Test Name` - those are
+manual-input columns with an auto-derive fallback (blank the first time, then whatever
+a run last wrote), not pure results, so they're deliberately left alone. If one of
+those is stuck on a stale value - e.g. after renaming a `Scenario Name`, its
+`Baseline Env Name` doesn't follow automatically, since it's only derived when blank -
+clear that specific cell by hand.
+
+Same `-PfigmaExcel=<path>` override as every other task, e.g.:
+```bash
+./gradlew cleanFigmaExcel -PfigmaExcel=figma-visual-testing/figma_mockede2e_web_ci.xlsx
+```
+
+**This is a destructive, in-place overwrite with no backup** - same as every other
+write this project does to the Excel file. If you're tracking the file yourself
+(git, Time Machine, a manual copy), that's your safety net, not this tool's.
 
 ## Notes
 
