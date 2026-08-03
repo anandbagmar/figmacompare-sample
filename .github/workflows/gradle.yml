@@ -75,7 +75,7 @@ jobs:
       # exact key that restored them.
       - name: Cache Figma downloaded images
         if: github.event_name == 'workflow_dispatch' && inputs.runUpload
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: downloaded_images/figma-cache
           key: figma-cache-${{ hashFiles('figma-visual-testing/figma_mockede2e_web_ci.xlsx') }}
