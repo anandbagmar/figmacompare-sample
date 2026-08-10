@@ -67,7 +67,7 @@ dependencies {
     implementation figmacompareCoordinate
     implementation enforcedPlatform("org.seleniumhq.selenium:selenium-bom:4.46.0")
     implementation "com.applitools:eyes-images-java5:5.82.0"
-    implementation ("com.applitools:eyes-appium-java5:5.79.37") {
+    implementation ("com.applitools:eyes-appium-java5:5.79.41") {
         exclude group: 'io.appium', module: 'java-client'
     }
     implementation "io.appium:java-client:10.1.1"
