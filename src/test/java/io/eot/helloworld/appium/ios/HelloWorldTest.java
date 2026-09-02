@@ -124,7 +124,6 @@ public class HelloWorldTest {
         eyes.setLogHandler(new StdoutLogHandler(true));
 
         Configuration configuration = EyesConfigSupport.baseConfiguration(batch, null);
-        configuration.setSaveNewTests(true);
         configuration.setBranchName("main");
         configuration.setEnvironmentName("prod");
         configuration.setIgnoreCaret(true);

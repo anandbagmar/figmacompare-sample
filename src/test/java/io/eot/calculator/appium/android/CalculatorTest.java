@@ -79,7 +79,7 @@ class CalculatorTest {
     void setUpAndroid(Method testInfo) {
         System.out.println("BeforeEach: Test - " + testInfo.getName());
         driver = AndroidDriverFactory.create(APPIUM_SERVER_URL, APK_NAME, IS_FULL_RESET);
-        eyes = MobileEyesSupport.open(driver, batch, className, testInfo.getName(), null, IS_EYES_ENABLED, true);
+        eyes = MobileEyesSupport.open(driver, batch, className, testInfo.getName(), null, IS_EYES_ENABLED);
     }
 
     @Test

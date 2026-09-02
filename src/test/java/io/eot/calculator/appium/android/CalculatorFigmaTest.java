@@ -60,7 +60,7 @@ class CalculatorFigmaTest {
         this.baselineName = testName + "-baseline";
         System.out.printf("Test: %s - BeforeEach%n", testName);
         setUpAndroid(testInfo);
-        eyes = MobileEyesSupport.open(driver, batch, className, testName, baselineName, IS_EYES_ENABLED, true);
+        eyes = MobileEyesSupport.open(driver, batch, className, testName, baselineName, IS_EYES_ENABLED);
     }
 
     @AfterMethod
