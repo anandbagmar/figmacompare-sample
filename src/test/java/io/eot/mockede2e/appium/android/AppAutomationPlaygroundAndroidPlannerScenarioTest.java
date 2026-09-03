@@ -11,13 +11,18 @@ import io.eot.figmacompare.appium.android.AndroidScenarioRegistry;
 import io.eot.figmacompare.excel.FigmaRow;
 
 /**
- * Scenario provider (not a TestNG test itself) for the "App Automation Playground" Android
- * app's Community Meeting Planner flow - a 4-screen scenario in one continuous app
- * session: Home -> Choose the planner flow -> Meeting Planner (Step 1) -> Native Detail
+ * Scenario provider (not a TestNG test itself) for the "App Automation
+ * Playground" Android
+ * app's Community Meeting Planner flow - a 4-screen scenario in one continuous
+ * app
+ * session: Home -> Choose the planner flow -> Meeting Planner (Step 1) ->
+ * Native Detail
  * (Step 2A). Registered scenarios are run by CompareAndroidWithFigma.
  *
- * The Excel rows for this scenario must be listed in exactly this screen order, since
- * eyes.checkWindow(...) is called once per row in rows.get(i) order as this flow
+ * The Excel rows for this scenario must be listed in exactly this screen order,
+ * since
+ * eyes.checkWindow(...) is called once per row in rows.get(i) order as this
+ * flow
  * navigates forward - there is no going back to an earlier step.
  */
 public class AppAutomationPlaygroundAndroidPlannerScenarioTest {
@@ -30,7 +35,7 @@ public class AppAutomationPlaygroundAndroidPlannerScenarioTest {
     }
 
     static {
-        AndroidScenarioRegistry.register("android-app-automation-playground-planner-flow", APK_NAME, APP_NAME,
+        AndroidScenarioRegistry.register("android-app-automation-playground-planner-scenario", APK_NAME, APP_NAME,
                 (driver, eyes, rows) -> {
                     WebDriverWait wait = new WebDriverWait(driver, WAIT_TIMEOUT);
 
@@ -42,19 +47,19 @@ public class AppAutomationPlaygroundAndroidPlannerScenarioTest {
                     driver.findElement(AppiumBy.accessibilityId("home.button.planner")).click();
                     wait.until(ExpectedConditions.presenceOfElementLocated(
                             AppiumBy.accessibilityId("planner.mode.button.original")));
-                    eyes.checkWindow(resolveStepName(rows.get(1)));
 
-                    // Step 3: tap "Open Original Flow" -> Meeting Planner, Step 1 "Build the event mood".
+                    // Step 3: tap "Open Original Flow" -> Meeting Planner, Step 1 "Build the event
+                    // mood".
                     driver.findElement(AppiumBy.accessibilityId("planner.mode.button.original")).click();
                     wait.until(ExpectedConditions.presenceOfElementLocated(
                             AppiumBy.accessibilityId("planner.button.next.native")));
-                    eyes.checkWindow(resolveStepName(rows.get(2)));
+                    eyes.checkWindow(resolveStepName(rows.get(1)));
 
                     // Step 4: tap "Next: Native Detail" -> Step 2A native screen.
                     driver.findElement(AppiumBy.accessibilityId("planner.button.next.native")).click();
                     wait.until(ExpectedConditions.presenceOfElementLocated(
                             AppiumBy.accessibilityId("nativeJourney.button.continue")));
-                    eyes.checkWindow(resolveStepName(rows.get(3)));
+                    eyes.checkWindow(resolveStepName(rows.get(2)));
                 });
     }
 

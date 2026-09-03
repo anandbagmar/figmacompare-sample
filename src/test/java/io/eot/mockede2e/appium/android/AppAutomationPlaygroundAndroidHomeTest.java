@@ -11,9 +11,11 @@ import io.eot.figmacompare.appium.android.AndroidScenarioRegistry;
 import io.eot.figmacompare.excel.FigmaRow;
 
 /**
- * Scenario provider (not a TestNG test itself) for the "App Automation Playground" Android
+ * Scenario provider (not a TestNG test itself) for the "App Automation
+ * Playground" Android
  * app's Home screen - a standalone, single-screen scenario. See
- * AppAutomationPlaygroundAndroidPlannerScenarioTest for the multi-screen version of the
+ * AppAutomationPlaygroundAndroidPlannerScenarioTest for the multi-screen
+ * version of the
  * same app. Registered scenarios are run by CompareAndroidWithFigma.
  */
 public class AppAutomationPlaygroundAndroidHomeTest {
@@ -25,7 +27,7 @@ public class AppAutomationPlaygroundAndroidHomeTest {
     }
 
     static {
-        AndroidScenarioRegistry.register("android-app-automation-playground-home", APK_NAME, APP_NAME,
+        AndroidScenarioRegistry.register("android-app-automation-playground-home-scenario", APK_NAME, APP_NAME,
                 (driver, eyes, rows) -> {
                     new WebDriverWait(driver, Duration.ofSeconds(15)).until(
                             ExpectedConditions.presenceOfElementLocated(AppiumBy.accessibilityId("home.screen")));
