@@ -10,6 +10,7 @@ Back to [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)
 - [D. A brand-new Android app — one new class + one registry line](#d-a-brand-new-android-app--one-new-class--one-registry-line)
 - [E. iOS — same as C/D, using the iOS equivalents](#e-ios--same-as-cd-using-the-ios-equivalents)
 - [F. Plugging in your own existing Appium tests](#f-plugging-in-your-own-existing-appium-tests)
+- [G. Consuming figmacompare directly from your own framework (no copying into this repo)](#g-consuming-figmacompare-directly-from-your-own-framework-no-copying-into-this-repo)
 
 See figmacompare's
 [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
@@ -133,5 +134,72 @@ matching Excel rows; run `uploadFromFigma` then `compareAndroidWithFigma`/
 `compareIosWithFigma`. See
 [`AppAutomationPlaygroundAndroidPlannerScenarioTest.java`](../src/test/java/io/eot/mockede2e/appium/android/AppAutomationPlaygroundAndroidPlannerScenarioTest.java)
 for a worked multi-step example ported from real app exploration.
+
+## G. Consuming figmacompare directly from your own framework (no copying into this repo)
+
+Option F ports your interaction code into a provider class *inside this repo*. If you'd
+rather keep your existing framework as the home for that code — instead of maintaining
+a second copy here — you can depend on `figmacompare` directly from your own project.
+This works because `figmacompare` itself has **no test-framework dependency**:
+`AndroidCompareRunner`/`IosCompareRunner`/`WebCompareRunner`, `UploadFromFigma`, and the
+scenario registries are all plain Java. `figmacompare-sample` (this repo) is just one
+consumer that happens to wrap them in thin TestNG shims — TestNG isn't required by the
+library, only by this particular sample repo.
+
+**Steps:**
+
+1. **Add the dependency** to your own framework's `build.gradle`/`pom.xml`:
+   ```groovy
+   repositories {
+       maven { url 'https://jitpack.io' }
+   }
+   dependencies {
+       implementation "com.github.anandbagmar:figmacompare:vX.Y.Z"   // exact tag, including the "v"
+   }
+   ```
+   Resolved via [JitPack](https://jitpack.io) — public repo, no token needed. See
+   [figmacompare's README](https://github.com/anandbagmar/figmacompare#readme) for the
+   latest tag/coordinates.
+
+2. **Provide config** — `FIGMA_TOKEN`, `APPLITOOLS_API_KEY`, etc., via
+   `config.properties` or environment variables, per figmacompare's
+   [Configuration.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/Configuration.md).
+   Nothing here is specific to this sample repo.
+
+3. **Register your `ScenarioFlow`s directly in your own codebase** — a provider class
+   in your framework calling `AndroidScenarioRegistry.register(...)` /
+   `IosScenarioRegistry.register(...)`, using your framework's existing Appium driver
+   setup and package structure:
+   ```java
+   AndroidScenarioRegistry.register("your-new-scenario-name", APK_NAME, APP_NAME, (driver, eyes, rows) -> {
+       // your existing interaction code, e.g.:
+       // driver.findElement(...).click();
+       eyes.checkWindow(resolveStepName(rows.get(0)));
+   });
+   ```
+   This is the same code you'd otherwise port into option F's provider class — except
+   it now lives permanently in your own framework instead of being copied into a
+   second repo.
+
+4. **Invoke the runners from wherever your framework triggers execution** — a JUnit
+   `@BeforeAll`/extension, a Cucumber hook, a custom runner, whatever your framework's
+   own entry point is. `AndroidCompareRunner`/`IosCompareRunner`/`WebCompareRunner`/
+   `UploadFromFigma` are plain classes with `main`-style entry points — nothing
+   TestNG-shaped about calling them.
+
+5. **This repo (`figmacompare-sample`) becomes optional** — useful only as a reference
+   implementation for the wiring pattern (see options A–F above), not something you
+   depend on or copy from.
+
+The web path is even more decoupled: `WebCompareRunner` needs **zero** registration
+code at all, since any `App URL / Screen Name` is navigated to directly — see
+figmacompare's [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md).
+
+**Same known gap as option F applies here too:** `AndroidDriverFactory`/
+`IosDriverFactory` (in figmacompare) currently only accept `(apkPath/appPath,
+fullReset)` — a fixed, minimal Appium capability set — and Eyes config
+(batch/match-level/etc.) is global per platform, not per-app. If your framework needs
+richer Appium capabilities or per-app Eyes config, that's a `figmacompare` library
+extension, not something configurable purely from the consumer side.
 
 Back to [README_FigmaVisualValidation.md](README_FigmaVisualValidation.md)
