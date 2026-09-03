@@ -176,9 +176,29 @@ left blank, so nothing stale gets committed or reused across runs. This file is 
 committed either — it's stored as a base64-encoded secret and reconstructed at the
 start of each CI run:
 
+**macOS:**
 ```bash
 base64 -i figma-visual-testing/figma_mockede2e_web_ci.xlsx | pbcopy
 ```
+
+**Linux** (copies to the X11 clipboard via `xclip`; install it first if needed, e.g.
+`sudo apt install xclip`):
+```bash
+base64 -w0 figma-visual-testing/figma_mockede2e_web_ci.xlsx | xclip -selection clipboard
+```
+
+**Windows (PowerShell):**
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("figma-visual-testing\figma_mockede2e_web_ci.xlsx")) | Set-Clipboard
+```
+
+**Windows (Command Prompt)** — no built-in clipboard-friendly one-liner; use
+`certutil` to write the encoded value to a file, then open and copy it manually:
+```
+certutil -encode figma-visual-testing\figma_mockede2e_web_ci.xlsx encoded.b64.txt
+```
+(Open `encoded.b64.txt`, strip the `-----BEGIN CERTIFICATE-----`/`-----END
+CERTIFICATE-----` header/footer lines, and copy the remaining base64 body.)
 
 Paste the clipboard contents as the `FIGMA_CI_EXCEL_B64` secret's value. Regenerate
 and re-set the secret whenever the `Web` rows change (new scenario step, new

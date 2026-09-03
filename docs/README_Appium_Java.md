@@ -43,12 +43,25 @@ for your user account from the Eyes Dashboard UI. Set it as the `APPLITOOLS_API_
 environment variable — every test class in this project reads it from there
 (`System.getenv("APPLITOOLS_API_KEY")`), so there's nothing to hard-code in the test source.
 
+**macOS / Linux** (bash/zsh):
 ```bash
 export APPLITOOLS_API_KEY=<your-api-key>
 ```
 
+**Windows (Command Prompt):**
+```
+set APPLITOOLS_API_KEY=<your-api-key>
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:APPLITOOLS_API_KEY="<your-api-key>"
+```
+
 ***Note:*** Your Applitools API key is a secret value. Treat it like a password and do
-not share it or commit it into source control.
+not share it or commit it into source control. `set`/`$env:` only apply to the current
+terminal session — set it again (or add it to your system's persistent environment
+variables) in a new session.
 
 ### Install the example application
 
@@ -65,9 +78,18 @@ and launch automatically — you don't need to install or launch them yourself:
 Run tests from a terminal using the Gradle `test` task and the `testClass` project property
 (see [build.gradle](../build.gradle)):
 
+**macOS / Linux:**
 ```bash
 ./gradlew test -PtestClass=<fully.qualified.TestClassName>
 ```
+
+**Windows (Command Prompt or PowerShell):**
+```
+gradlew.bat test -PtestClass=<fully.qualified.TestClassName>
+```
+
+> Every other `./gradlew ...` command shown below and elsewhere in this repo's docs
+> works the same way on Windows — just swap `./gradlew` for `gradlew.bat`.
 
 Or run a specific test class directly from your IDE (IntelliJ/Eclipse) by right-clicking the
 class and choosing **Run**.

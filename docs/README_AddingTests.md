@@ -15,6 +15,10 @@ See figmacompare's
 [CompareWithFigma.md](https://github.com/anandbagmar/figmacompare/blob/main/docs/CompareWithFigma.md)
 for how `Scenario Name` and the web/mobile registries work before adding to them here.
 
+> **Windows note:** every `./gradlew ...` command below (macOS/Linux syntax) works the
+> same way on Windows — just run `gradlew.bat ...` instead, from Command Prompt or
+> PowerShell.
+
 ## A. A new standalone web page/component — no code
 
 1. Add one row: `Figma URL`, `Platform=Web`, `App URL / Screen Name`. Leave

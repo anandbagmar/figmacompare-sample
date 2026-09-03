@@ -23,15 +23,38 @@ First,
 for your user account from the Eyes Dashboard UI, and set it as an environment variable —
 every test class in this project reads it via `System.getenv("APPLITOOLS_API_KEY")`:
 
+**macOS / Linux** (bash/zsh):
 ```bash
 export APPLITOOLS_API_KEY=<your-api-key>
 ```
 
+**Windows (Command Prompt):**
+```
+set APPLITOOLS_API_KEY=<your-api-key>
+```
+
+**Windows (PowerShell):**
+```powershell
+$env:APPLITOOLS_API_KEY="<your-api-key>"
+```
+
+`set`/`$env:` only apply to the current terminal session — set it again (or add it to
+your system's persistent environment variables) in a new session.
+
 ### Launch the tests
 
+**macOS / Linux:**
 ```bash
 ./gradlew test -PtestClass=<fully.qualified.TestClassName>
 ```
+
+**Windows (Command Prompt or PowerShell):**
+```
+gradlew.bat test -PtestClass=<fully.qualified.TestClassName>
+```
+
+> Every other `./gradlew ...` command shown below works the same way on Windows —
+> just swap `./gradlew` for `gradlew.bat`.
 
 Or run a specific test class directly from your IDE (IntelliJ/Eclipse) by right-clicking the
 class and choosing **Run**.

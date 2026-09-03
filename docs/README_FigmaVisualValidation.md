@@ -25,6 +25,10 @@ own docs, linked throughout below.
 - [Step 5 — Review and report](#step-5-review-and-report-uiux-team-will-manually-review-the-results)
 - [How to add a new test / scenario](#how-to-add-a-new-test-scenario)
 
+> **Windows note:** every `./gradlew ...` command shown below (macOS/Linux syntax)
+> works the same way on Windows — just run `gradlew.bat ...` instead, from Command
+> Prompt or PowerShell.
+
 Related docs: [README_AddingTests.md](README_AddingTests.md) ·
 [README_uploadFromFigma.md](README_uploadFromFigma.md) ·
 [README_Web_Selenium.md](README_Web_Selenium.md) ·
