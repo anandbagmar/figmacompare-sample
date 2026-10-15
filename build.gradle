@@ -76,7 +76,7 @@ dependencies {
     implementation 'com.googlecode.libphonenumber:libphonenumber:9.0.35'
     implementation 'com.google.code.gson:gson:2.14.0'
     implementation 'jaxen:jaxen:2.0.6'
-    implementation 'org.jsoup:jsoup:1.22.2'
+    implementation 'org.jsoup:jsoup:1.23.2'
     implementation 'org.dom4j:dom4j:2.2.0'
     implementation 'com.squareup.okhttp3:okhttp:5.4.0'
     implementation 'org.apache.poi:poi-ooxml:5.5.1'
